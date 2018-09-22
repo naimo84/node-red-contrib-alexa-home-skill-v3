@@ -21,8 +21,13 @@ module.exports = function(RED) {
     var mqtt = require('mqtt');
     var bodyParser = require('body-parser');
 
-    var devicesURL = 'https://alexa-node-red.bm.hardill.me.uk/api/v1/devices';
-
+    // Change these to match your hosting environment
+    var webHost = "nr-alexav3.cb-net.co.uk";
+    // Testing ONLY
+    // var mqttHost = "<ip/ hostname>";
+    // Production
+    var mqttHost = "nr-alexav3.cb-net.co.uk";
+    var devicesURL = "https://" + webHost + "/api/v1/devices";
 
     var devices = {};
 
@@ -35,7 +40,23 @@ module.exports = function(RED) {
 
     	var node = this;
 
+        // Testing ONLY
+        /*  process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0;
         var options = {
+            username: node.username,
+            password: node.password,
+            clientId: node.username,
+            reconnectPeriod: 5000,
+            servers:[{
+                    protocol: 'mqtt',
+                    host: mqttHost,
+                    port: 1883
+                }
+            ]
+        }; */
+
+        // Production config
+         var options = {
             username: node.username,
             password: node.password,
             clientId: node.username,
@@ -43,29 +64,16 @@ module.exports = function(RED) {
             servers:[
                 {
                     protocol: 'mqtts',
-                    host: 'alexa-node-red.hardill.me.uk',
+                    host: mqttHost,
                     port: 8883
                 },
                 {
                     protocol: 'mqtt',
-                    host: 'alexa-node-red.hardill.me.uk',
+                    host: mqttHost,
                     port: 1883
                 }
             ]
         };
-
-        // if (process.env.DEBUG) {
-        //     console.log("debug");
-        //     process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0;
-        //     var test = {
-        //         protocol: 'mqtt',
-        //         host: '172.17.0.2',
-        //         port: 1883
-        //     };
-        //     options.servers = [test];
-
-        //     devicesURL = 'https://localhost:3000/api/v1/devices'
-        // }
 
         getDevices(node.username, node.password, node.id);
 
@@ -79,10 +87,11 @@ module.exports = function(RED) {
                 node.client.subscribe("command/" + node.username + "/#");
                 node.client.on('message', function(topic, message){
                     var msg = JSON.parse(message.toString());
-                    var applianceId = msg.payload.appliance.applianceId;
+                    //console.log("msg", msg)
+                    var endpointId = msg.directive.endpoint.endpointId;
                     for (var id in node.users) {
                         if (node.users.hasOwnProperty(id)){
-                            if (node.users[id].device === applianceId) {
+                            if (node.users[id].device === endpointId) {
                                 node.users[id].command(msg);
                             }
                         }
@@ -137,7 +146,7 @@ module.exports = function(RED) {
             done();
         };
 
-        this.acknoledge = function(messageId, device, success, extra) {
+        this.acknowledge = function(messageId, device, success, extra) {
             var response = {
                 messageId: messageId,
                 success: success
@@ -147,7 +156,7 @@ module.exports = function(RED) {
                 response.extra = extra;
             }
 
-            // console.log("response: " + response);
+            console.log("response: " + response);
 
             var topic = 'response/' + node.username + '/' + device;
             if (node.client && node.client.connected) {
@@ -164,116 +173,60 @@ module.exports = function(RED) {
     	});
     };
 
-    RED.nodes.registerType("alexa-home-conf",alexaConf,{
+    // Re-branded for v3 API
+    RED.nodes.registerType("alexa-smart-home-v3-conf",alexaConf,{
         credentials: {
             password: {type:"password"}
         }
     });
 
+    // Updated for v3 API
     function alexaHome(n) {
     	RED.nodes.createNode(this,n);
     	this.conf = RED.nodes.getNode(n.conf);
         this.confId = n.conf;
     	this.device = n.device;
         this.topic = n.topic;
-        this.acknoledge = n.acknoledge;
+        this.acknowledge = n.acknowledge;
         this.name = n.name;
 
     	var node = this;
 
         node.command = function (message){
+            //console.log("message", message)
             var msg ={
                 topic: node.topic || "",
                 name: node.name,
-                _messageId: message.header.messageId,
-                _applianceId: message.payload.appliance.applianceId,
+                _messageId: message.directive.header.messageId,
+                _endpointId: message.directive.endpoint.endpointId,
                 _confId: node.confId,
-                command: message.header.name,
-                extraInfo: message.payload.appliance.additionalApplianceDetails
+                command: message.directive.header.name,
+                extraInfo: message.directive.endpoint.cookie
             }
 
             var responseExtra;
             var respond = true;
 
-            switch(message.header.name){
-                case "TurnOnRequest":
+            // Needs expanding based on additional applications
+            switch(message.directive.header.name){
+                case "TurnOn":
+                    // Power-on command
                     msg.payload = true;
                     break;
-                case "TurnOffRequest":
+                case "TurnOff":
+                    // Power-off command
                     msg.payload = false;
                     break;
-                case "SetPercentageRequest":
-                    msg.payload = message.payload.percentageState.value;
-                    break;
-                case "IncrementPercentageRequest":
-                    msg.payload = message.payload.deltaPercentage.value;
-                    break;
-                case "DecrementPercentageRequest":
-                    msg.payload = -1 * message.payload.deltaPercentage.value;
-                    break;
-                case "SetTargetTemperatureRequest":
-                    msg.payload = message.payload.targetTemperature.value;
-                    responseExtra = {
-                        targetTemperature: {
-                            value: message.payload.targetTemperature.value
-                        }
-                    };
-                    break;
-                case "IncrementTargetTemperatureRequest":
-                    msg.payload = message.payload.deltaTemperature.value;
-                    responseExtra = {
-                        targetTemperature: {
-                            value: message.payload.targetTemperature.value
-                        }
-                    };
-                    break;
-                case "DecrementTargetTemperatureRequest":
-                    msg.payload = -1 * message.payload.deltaTemperature.value;
-                    responseExtra = {
-                        targetTemperature: {
-                            value: message.payload.targetTemperature.value
-                        }
-                    };
-                    break;
-                case "SetLockStateRequest":
-                    msg.payload = message.payload.lockState;
-                    responseExtra = {
-                        lockState: message.payload.lockState
-                    }
-                    break;
-                case "SetColorRequest":
-                    msg.payload = message.payload.color;
-                    responseExtra = {
-                        achievedState: {
-                            color: message.payload.color
-                        }
-                    };
-                    break;
-                case "SetColorTemperatureRequest":
-                    msg.payload = message.payload.colorTemperature.value;
-                    responseExtra = {
-                        achievedState: message.payload
-                    }
-                    //respond = false;
-                    break;
-                case "IncrementColorTemperatureRequest":
-                    msg.payload = message.payload
-                    respond = false;
-                    break;
-                case "decrementColorTemperatureRequest":
-                    msg.payload = message.payload;
-                    respond = false;
-                    break;
-                case "GetLockStateRequest":
-                case "GetTemperatureReadingRequest":
-                case "GetTargetTemperatureRequest":
-                    respond = false;
+                case "AdjustVolume":
+                    // Volume adjustment command
+                    msg.payload = message.directive.payload.volumeSteps;
                     break;
             }
-
+            
+            // Response extra can be used to feedback additional info via WebService
             node.send(msg);
-            if (node.acknoledge && respond) {
-                node.conf.acknoledge(message.header.messageId, node.device, true, responseExtra);
+            if (node.acknowledge && respond) {
+                node.conf.acknowledge(message.directive.header.messageId, node.device, true, responseExtra);
             }
         }
 
@@ -285,31 +238,35 @@ module.exports = function(RED) {
 
     }
 
+   // Re-branded for v3 API
+    RED.nodes.registerType("alexa-smart-home-v3", alexaHome);
 
-    RED.nodes.registerType("alexa-home", alexaHome);
-
+    // Think this is OK for v3 API
     function alexaHomeResponse(n) {
         RED.nodes.createNode(this,n);
 
         var node = this;
 
         node.on('input',function(msg){
-            if (msg._messageId && msg._applianceId && msg._confId) {
+            if (msg._messageId && msg._endpointId && msg._confId) {
                 var conf = RED.nodes.getNode(msg._confId);
                 if (typeof msg.payload == 'boolean' && msg.payload) {
-                    conf.acknoledge(msg._messageId, msg._applianceId, true, msg.extra);
+                    conf.acknowledge(msg._messageId, msg._endpointId, true, msg.extra);
                 } else {
-                    conf.acknoledge(msg._messageId, msg._applianceId, false, msg.extra);
+                    conf.acknowledge(msg._messageId, msg._endpointId, false, msg.extra);
                 }
             }
 
         });
     }
 
-    RED.nodes.registerType("alexa-home-resp", alexaHomeResponse);
+    // Re-branded for v3 API
+    RED.nodes.registerType("alexa-smart-home-v3-resp", alexaHomeResponse);
 
-    RED.httpAdmin.use('/alexa-home/new-account',bodyParser.json());
+    // Re-branded for v3 API
+    RED.httpAdmin.use('/alexa-smart-home-v3/new-account',bodyParser.json());
 
+    // Shouldn't need a change?
     function getDevices(username, password, id){
         if (username && password) {
             request.get({
@@ -331,7 +288,8 @@ module.exports = function(RED) {
         }
     };
 
-    RED.httpAdmin.post('/alexa-home/new-account',function(req,res){
+    // Re-branded for v3 API
+    RED.httpAdmin.post('/alexa-smart-home-v3/new-account',function(req,res){
     	//console.log(req.body);
     	var username = req.body.user;
     	var password = req.body.pass;
@@ -339,7 +297,8 @@ module.exports = function(RED) {
     	getDevices(username,password,id);
     });
 
-    RED.httpAdmin.post('/alexa-home/refresh/:id',function(req,res){
+    // Re-branded for v3 API
+    RED.httpAdmin.post('/alexa-smart-home-v3/refresh/:id',function(req,res){
         var id = req.params.id;
         var conf = RED.nodes.getNode(id);
         if (conf) {
@@ -354,7 +313,8 @@ module.exports = function(RED) {
         }
     });
 
-    RED.httpAdmin.get('/alexa-home/devices/:id',function(req,res){
+    // Re-branded for v3 API
+    RED.httpAdmin.get('/alexa-smart-home-v3/devices/:id',function(req,res){
     	if (devices[req.params.id]) {
     		res.send(devices[req.params.id]);
     	} else {
