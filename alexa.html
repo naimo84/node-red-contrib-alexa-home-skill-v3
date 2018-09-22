@@ -10,7 +10,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<script type="text/x-red" data-template-name="alexa-home-conf">
+<script type="text/x-red" data-template-name="alexa-smart-home-v3-conf">
     <div class="form-row">
 	    <label for="node-config-input-username"><i class="icon-tag"></i> Username</label>
 	    <input type="text" id="node-config-input-username">
@@ -21,13 +21,13 @@
 	</div>
 </script>
 
-<script type="text/x-red" data-help-name="alexa-home-conf">
+<script type="text/x-red" data-help-name="alexa-smart-home-v3-conf">
 	<p>If you don't have an account on the bridge create one 
-    <a target="_blank" href="https://alexa-node-red.bm.hardill.me.uk/">here</a>.</p>
+    <a target="_blank" href="https://nr-alexav3.cb-net.co.uk">here</a>.</p>
 </script>
 
 <script type="text/javascript">
-    RED.nodes.registerType('alexa-home-conf',{
+    RED.nodes.registerType('alexa-smart-home-v3-conf',{
         category: 'config',
         defaults: {
         	username: {}
@@ -52,7 +52,7 @@
         		}
         		$.ajax({
         			data: JSON.stringify(account),
-        			url: 'alexa-home/new-account',
+        			url: 'alexa-smart-home-v3/new-account',
         			contentType: 'application/json',
         			type: 'POST',
         			processData: false
@@ -62,7 +62,7 @@
     });
 </script>
 
-<script type="text/x-red" data-template-name="alexa-home">
+<script type="text/x-red" data-template-name="alexa-smart-home-v3">
 	<div class="form-row">
 		<label for="node-input-conf"><i class="icon-tag"></i> Account</label>
 		<input type="text" id="node-input-conf">
@@ -76,8 +76,8 @@
 	</div>
     <div class="form-row">
         <label>&nbsp;</label>
-        <input type="checkbox" id="node-input-acknoledge" style="display: inline-block; width: auto; vertical-align: top;">
-        <label for="node-input-acknoledge" style="width: 70%"> Auto Acknowledge</span>
+        <input type="checkbox" id="node-input-acknowledge" style="display: inline-block; width: auto; vertical-align: top;">
+        <label for="node-input-acknowledge" style="width: 70%"> Auto Acknowledge</span>
     </div>
     <div class="form-row">
         <label for="node-input-topic"><i class="icon-tag"></i> Topic</label>
@@ -87,70 +87,26 @@
     </div>
 </script>
 
-<script type="text/x-red" data-help-name="alexa-home">
+<script type="text/x-red" data-help-name="alexa-smart-home-v3">
 	<p>This node provides an end point for an Alexa Home Skill.
     To use this node you will need to create an account and declare some devices 
-    <a target="_blank" href="https://alexa-node-red.bm.hardill.me.uk/">here</a>. 
+    <a target="_blank" href="https://nr-alexav3.cb-net.co.uk">here</a>. 
     You will also need to add the "Node-RED" skill to your Echo device</p>
     <p>A full set of setup instrucations can be found 
-    <a target="_blank" href="https://alexa-node-red.bm.hardill.me.uk/docs">here</a></p>
+    <a target="_blank" href="https://nr-alexav3.cb-net.co.uk/docs">here</a></p>
     <p>The <i>Topic</i> field is optional and will be added to any messages sent from 
     the node.</p>
-    <p>Auto Acknoledge tells Alexa the command suceeded no matter what. If you untick 
+    <p>Auto Acknowledge tells Alexa the command suceeded no matter what. If you untick 
     this option you will need to add a <i>Alexa Home Response</i> node to the flow.</p>
-    <p>The node outputs a message that looks something like this:</p>
-    <pre>{
-    "command": "TurnOnRequest",
-    "extraInfo": {},
-    "payload": true
-}</pre>
-    <p>or</p>
-    <pre>{
-    "command": "SetPercentageRequest",
-    "extraInfo": {}, 
-    "payload": 50
-}</pre>
-    <p>or</p>
-    <pre>{
-    "command": "DecrementTemperatureRequest",
-    "extraInfo": {}, 
-    "payload": -5
-}</pre>
-<p>or</p>
-    <pre>{
-    "command": "SetLockState",
-    "extraInfo": {}, 
-    "payload": 'LOCKED'
-}</pre>
-    <p>This is a full list of the currently valid commands:</p>
-    <ul>
-        <li>TurnOnRequest</li>
-        <li>TurnOffRequest</li>
-        <li>SetPercentageRequest</li>
-        <li>IncrementPercentageRequest</li>
-        <li>DecrementPercentageRequest</li>
-        <li>SetTemperatureRequest</li>
-        <li>IncrementTemperatureRequest</li>
-        <li>DecrementTemperatureRequest</li>
-        <li>GetTemperatureReadingRequest <sup>1,2</sup></li>
-        <li>GetTemperatureRequest <sup>1,2</sup></li>
-        <li>SetLockState <sup>2</sup></li>
-        <li>GetLockState <sup>1,2</sup></li>
-    </ul>
-    <ol>
-        <li>These actions can not be automatically acknowledged 
-        as they must return values</li>
-        <li>Currently only available to US users.</li>
-    </ol>
 </script>
 
 <script type="text/javascript">
-    RED.nodes.registerType('alexa-home',{
+    RED.nodes.registerType('alexa-smart-home-v3',{
         category: 'alexa',
         defaults: {
-        	conf: {value: "", type:"alexa-home-conf"},
+        	conf: {value: "", type:"alexa-smart-home-v3-conf"},
         	device: {value: "" },
-            acknoledge: {value: true},
+            acknowledge: {value: true},
         	name: {},
             topic: {}
         },
@@ -159,7 +115,7 @@
         color: '#D3D3D3',
         icon: 'alexa.png',
         label: function() {
-        	return this.name || "Alexa Home";
+        	return this.name || "Alexa Smart Home v3";
         },
         oneditsave: function() {
              var n = $('#node-input-device option:selected').text();
@@ -171,9 +127,9 @@
             var node = this;
 
             //console.log("foo " + node.device);
-            if (typeof node.acknoledge === 'undefined') {
+            if (typeof node.acknowledge === 'undefined') {
                 console.log("ben");
-                $('#node-input-acknoledge').prop('checked', true);
+                $('#node-input-acknowledge').prop('checked', true);
             }
 
             $('#node-input-device').change(function(){
@@ -181,11 +137,12 @@
             });
 
             var getDevs = function (account){
-                $.getJSON('alexa-home/devices/' + account, function(data){
+                $.getJSON('alexa-smart-home-v3/devices/' + account, function(data){
                     $('#node-input-device').find('option').remove().end();
                     for (d in data) {
+                        console.log("device info:", data[d].endpointId, data[d].friendlyName )
                         $('<option/>',{
-                        value: parseInt(data[d].applianceId),
+                        value: parseInt(data[d].endpointId),
                             text: data[d].friendlyName
                         }).appendTo('#node-input-device');
                     }
@@ -223,7 +180,7 @@
                 $('#node-input-device-refresh').addClass('disabled');
                 var account = $('#node-input-conf').val();
                 $.ajax({
-                    url: 'alexa-home/refresh/' + account,
+                    url: 'alexa-smart-home-v3/refresh/' + account,
                     type: 'POST'
                 }).done(function(data){
                     setTimeout(function(){
@@ -236,13 +193,13 @@
     });
 </script>
 
-<script type="text/x-red" data-template-name="alexa-home-resp">
+<script type="text/x-red" data-template-name="alexa-smart-home-v3-resp">
 </script>
 
-<script type="text/x-red" data-help-name="alexa-home">
-    <p>This node sends a response to Alexa to acknoledge if the command
+<script type="text/x-red" data-help-name="alexa-smart-home-v3">
+    <p>This node sends a response to Alexa to acknowledge if the command
     succeeded or not. To use this node you will need to un check the 
-    <i>Auto Acknoledge</i> check box in the Alexa Home node that starts
+    <i>Auto Acknowledge</i> check box in the Alexa Home node that starts
     the flow. Responses must be sent with in 5 seconds of 
     receiving the request otherwise a timeout message will be returned
     to the Alexa sevice.</p>
@@ -276,7 +233,7 @@
 </script>
 
 <script type="text/javascript">
-    RED.nodes.registerType('alexa-home-resp',{
+    RED.nodes.registerType('alexa-smart-home-v3-resp',{
         category: 'alexa',
         defaults: {
         },
@@ -285,7 +242,7 @@
         color: '#D3D3D3',
         icon: 'alexa.png',
         label: function() {
-            return this.name || "Alexa Home Response";
+            return this.name || "Alexa Smart Hopme v3 Response";
         }
     });
 </script>
