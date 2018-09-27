@@ -211,15 +211,24 @@ module.exports = function(RED) {
             switch(message.directive.header.name){
                 case "TurnOn":
                     // Power-on command
-                    msg.payload = true;
+                    msg.payload = "ON";
                     break;
                 case "TurnOff":
                     // Power-off command
-                    msg.payload = false;
+                    msg.payload = "OFF";
                     break;
                 case "AdjustVolume":
                     // Volume adjustment command
                     msg.payload = message.directive.payload.volumeSteps;
+                    break;
+                case "SelectInput":
+                    // Select input command
+                    msg.payload = message.directive.payload.input;
+                    break;
+                case "SetTargetTemperature":
+                    // Select input command
+                    msg.payload = message.directive.payload.targetSetpoint.value;
+                    msg.temperatureScale = message.directive.payload.targetSetpoint.scale;
                     break;
             }
             
