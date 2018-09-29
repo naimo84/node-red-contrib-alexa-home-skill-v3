@@ -226,9 +226,25 @@ module.exports = function(RED) {
                     msg.payload = message.directive.payload.input;
                     break;
                 case "SetTargetTemperature":
-                    // Select input command
+                    // Target temperature command
                     msg.payload = message.directive.payload.targetSetpoint.value;
                     msg.temperatureScale = message.directive.payload.targetSetpoint.scale;
+                    break;
+                case "SetBrightness":
+                    // Brightness % command
+                    msg.payload = message.directive.payload.brightness;
+                    break;
+                case "AdjustBrightness":
+                    // Brightness % command
+                    msg.payload = message.directive.payload.brightnessDelta;
+                    break;
+                case "SetColor":
+                    // Color command
+                    msg.payload = message.directive.payload.color;               
+                    break;
+                case "SetColorTemperature":
+                    // Color command
+                    msg.payload = message.directive.payload.colorTemperatureInKelvin;               
                     break;
             }
             
