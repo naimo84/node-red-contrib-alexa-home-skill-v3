@@ -26,7 +26,7 @@ module.exports = function(RED) {
     // Testing ONLY
     // var mqttHost = "<ip/ hostname>";
     // Production
-    var mqttHost = "nr-alexav3.cb-net.co.uk";
+    var mqttHost = "mq-alexav3.cb-net.co.uk";
     var devicesURL = "https://" + webHost + "/api/v1/devices";
 
     var devices = {};
