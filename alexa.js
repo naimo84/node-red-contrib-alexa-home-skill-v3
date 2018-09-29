@@ -246,6 +246,18 @@ module.exports = function(RED) {
                     // Color command
                     msg.payload = message.directive.payload.colorTemperatureInKelvin;               
                     break;
+                case "SetThermostatMode":
+                    // Color command
+                    msg.payload = message.directive.payload.thermostatMode.value;               
+                    break;
+                case "Lock":
+                    // Color command
+                    msg.payload = "Lock";               
+                    break;
+                case "Unlock":
+                    // Color command
+                    msg.payload = "Unlock";               
+                    break;
             }
             
             // Response extra can be used to feedback additional info via WebService
