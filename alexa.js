@@ -221,6 +221,11 @@ module.exports = function(RED) {
                     // Volume adjustment command
                     msg.payload = message.directive.payload.volumeSteps;
                     break;
+                case "SetMute":
+                    // Mute command
+                    if (message.directive.payload.mute == false) {msg.payload = "OFF"};
+                    if (message.directive.payload.mute == true) {msg.payload = "ON"};
+                    break;
                 case "SelectInput":
                     // Select input command
                     msg.payload = message.directive.payload.input;
