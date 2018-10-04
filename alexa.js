@@ -15,7 +15,6 @@
  **/
 
 module.exports = function(RED) {
-
     "use strict";
     var request = require('request');
     var mqtt = require('mqtt');
@@ -23,12 +22,9 @@ module.exports = function(RED) {
 
     // Change these to match your hosting environment
     var webHost = "nr-alexav3.cb-net.co.uk";
-    // Testing ONLY
-    // var mqttHost = "<ip/ hostname>";
-    // Production
     var mqttHost = "mq-alexav3.cb-net.co.uk";
-    var devicesURL = "https://" + webHost + "/api/v1/devices";
 
+    var devicesURL = "https://" + webHost + "/api/v1/devices";
     var devices = {};
 
     function alexaConf(n) {
@@ -146,15 +142,11 @@ module.exports = function(RED) {
             done();
         };
 
-        this.acknowledge = function(messageId, device, success, extra) {
+        this.acknowledge = function(messageId, device, success) {
             var response = {
                 messageId: messageId,
                 success: success
             };
-
-            if (extra) {
-                response.extra = extra;
-            }
 
             console.log("response: " + response);
 
@@ -204,7 +196,6 @@ module.exports = function(RED) {
                 extraInfo: message.directive.endpoint.cookie
             }
 
-            var responseExtra;
             var respond = true;
 
             // Needs expanding based on additional applications
@@ -265,10 +256,9 @@ module.exports = function(RED) {
                     break;
             }
             
-            // Response extra can be used to feedback additional info via WebService
             node.send(msg);
             if (node.acknowledge && respond) {
-                node.conf.acknowledge(message.directive.header.messageId, node.device, true, responseExtra);
+                node.conf.acknowledge(message.directive.header.messageId, node.device, true);
             }
         }
 
@@ -293,9 +283,9 @@ module.exports = function(RED) {
             if (msg._messageId && msg._endpointId && msg._confId) {
                 var conf = RED.nodes.getNode(msg._confId);
                 if (typeof msg.payload == 'boolean' && msg.payload) {
-                    conf.acknowledge(msg._messageId, msg._endpointId, true, msg.extra);
+                    conf.acknowledge(msg._messageId, msg._endpointId, true);
                 } else {
-                    conf.acknowledge(msg._messageId, msg._endpointId, false, msg.extra);
+                    conf.acknowledge(msg._messageId, msg._endpointId, false);
                 }
             }
 
