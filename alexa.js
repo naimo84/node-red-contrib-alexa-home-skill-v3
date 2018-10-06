@@ -156,6 +156,38 @@ module.exports = function(RED) {
             }
         };
 
+        // ##########################################################
+        // New function to report state, to be used on new node
+        // Plan, node will receive state information via Standard MQTT out/ another output 
+        // NodeJS WebApp is subscribed to state/#, so will intercept these messages
+                // On change API will update 'lastKnownState' object on device
+        // When Alexa queries/ requests state via Lambda web PI will check device state and return accordingly
+        //
+        // Need to be speciifc about deviceCapability and associated value, plus validate this. MongoDB property is as below:
+                // lastknownState {
+                    // BrightnessController
+                    // ThermostatController
+                    // PowerController
+                    // StepSpeakerController
+                    // PlaybackController
+                    // InputController
+                    // [..]
+                //}
+
+        this.updateState = function(messageId, endpointId, capability, payload) {
+            var response = {
+                messageId: messageId,
+                capability: capability,
+                payload: payload
+            };
+            console.log("State update: " + response);
+            var topic = 'state/' + node.username + '/' + endpointId;
+            if (node.client && node.client.connected) {
+                node.client.publish(topic, JSON.stringify(response));
+            }
+        };
+        // ##########################################################
+
     	this.on('close',function(){
             if (node.client && node.client.connected) {
                 node.client.end();
@@ -292,8 +324,113 @@ module.exports = function(RED) {
         });
     }
 
+    // ##########################################################
+
+    // Think this is OK for v3 API
+    function alexaHomeState(n) {
+        RED.nodes.createNode(this,n);
+
+    	this.conf = RED.nodes.getNode(n.conf);
+        this.confId = n.conf;
+    	this.device = n.device;
+        this.name = n.name;
+
+        var node = this;
+
+        // On Input publish MQTT message to /state/<username>/<endpointId>
+        node.on('input',function(msg){
+            // Need to build device state here //
+
+            // Requires "msg.capability" to be set to an aligned Alexa Smart Home Skill Controller
+            // Expects msg.payload to be as outlined under switch/ case statements
+
+            if (msg.capability) {              
+                // Check msg.capability is valid, will pass this to WebAPI
+                var deviceState;
+                var capabilityValid = false;
+                var stateValid = false;
+
+                // Perform validation of Device Capability/ Payload
+                switch(msg.capability){
+                    case "BrightnessController": // Expects payload to contain brightness percentage, in range of 0-100
+                        if (typeof msg.payload == 'number' && msg.payload >= 0 && msg.payload <= 100) {stateValid = true};
+                        capabilityValid = true;
+                        break;
+                    case "ColorController":  // Expects payload to include hue, saturation and brightness, in range of 0-360 for hue and 0-1 for saturation and brightness
+                        if (msg.payload.hasOwnProperty('hue') && msg.payload.hasOwnProperty('saturation') && msg.payload.hasOwnProperty('brightness')) {
+                            if (msg.payload.hue >= 0 && msg.payload.hue <= 360 && msg.payload.saturation >= 0 
+                                && msg.payload.saturation <= 1 && msg.payload.brightness >= 0 && msg.payload.brightness <= 1) {stateValid = true};
+                        };
+                        capabilityValid = true;
+                        break;
+                    case "ColorTemperatureController": // Expects payload to contain colorTemperatureInKelvin, in range of 0-10000
+                        //update lastknownState.ColorTemperatureController
+                        if (typeof msg.payload == 'number' && msg.payload >= 0 && msg.payload <= 10000) {stateValid = true};
+                        capabilityValid = true;
+                        break;
+                    case "InputController": // Expects payload to be string, inputs will grow so no point in specific string checking
+                        if (typeof msg.payload == 'string') {stateValid = true};
+                        capabilityValid = true;
+                        break;
+                    case "LockController": // Expects payload to be string, either LOCKED or UNLOCKED
+                        if (typeof msg.payload == 'string') {
+                            if (msg.payload == "LOCKED" || msg.payload == "UNLOCKED") {stateValid = true};
+                        };
+                        capabilityValid = true;
+                        break;
+                    case "PlaybackController": // Expects payload to be string
+                        if (typeof msg.payload == 'string') {stateValid = true};
+                        capabilityValid = true;
+                        break;
+                    case "PowerController": // Expects payload to be string, either ON or OFF
+                        if (typeof msg.payload == 'string') {
+                            if (msg.payload == "ON" || msg.payload == "OFF") {stateValid = true};
+                        };
+                        capabilityValid = true;
+                        break;
+                    case "SceneController": // Expects payload to be string, either ON or OFF
+                        if (typeof msg.payload == 'string') {
+                            if (msg.payload == "ON" || msg.payload == "OFF") {stateValid = true};
+                        };
+                        capabilityValid = true;
+                        break;
+                    case "StepSpeakerController": // Can't return status on somehting that is unknown
+                        capabilityValid = false;
+                        break;
+                    case "ThermostatController":// Expects payload to contain temperature and string, temperature is number, state is string
+                        if (msg.payload.hasOwnProperty(temperature) && msg.payload.hasOwnProperty(mode)) {
+                            if (typeof msg.payload.temperature == 'number' && msg.payload.mode == 'string') {stateValid = true};
+                            capabilityValid = true;
+                        }
+                        break;
+                }
+            
+                var conf = RED.nodes.getNode(msg._confId);
+                if (capabilityValid && stateValid) {
+                    // Send messageId, deviceId, capability and payload to updateState
+                    var messageId = uuid();
+                    conf.updateState(messageId, this.device, msg.capability, msg.payload);
+                }
+                else if (!capabilityValid) {console.log("Invalid capability, check msg.capability")}
+                else if (!stateValid) {console.log("Valid capability but state invalid, check msg.payload")}
+            }
+
+            node.conf.register(node);
+
+            node.on('close', function(done){
+                node.conf.deregister(node, done);
+            });
+
+        });
+    }
+    
+    // ##########################################################
+
     // Re-branded for v3 API
     RED.nodes.registerType("alexa-smart-home-v3-resp", alexaHomeResponse);
+
+    // New Node Type for State Reporting to Web App
+    RED.nodes.registerType("alexa-smart-home-v3-state", alexaHomeState);
 
     // Re-branded for v3 API
     RED.httpAdmin.use('/alexa-smart-home-v3/new-account',bodyParser.json());
@@ -319,6 +456,20 @@ module.exports = function(RED) {
             });
         }
     };
+
+    // UUID Generator
+    function uuid() {
+        var uuid = "", i, random;
+        for (i = 0; i < 32; i++) {
+          random = Math.random() * 16 | 0;
+      
+          if (i == 8 || i == 12 || i == 16 || i == 20) {
+            uuid += "-"
+          }
+          uuid += (i == 12 ? 4 : (i == 16 ? (random & 3 | 8) : random)).toString(16);
+        }
+        return uuid;
+      }
 
     // Re-branded for v3 API
     RED.httpAdmin.post('/alexa-smart-home-v3/new-account',function(req,res){
@@ -356,3 +507,4 @@ module.exports = function(RED) {
 
 
 };
+

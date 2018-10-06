@@ -193,6 +193,136 @@
     });
 </script>
 
+<!-- ############################################################################################## -->
+
+<script type="text/x-red" data-template-name="alexa-smart-home-v3-state">
+	<div class="form-row">
+		<label for="node-input-conf"><i class="icon-tag"></i> Account</label>
+		<input type="text" id="node-input-conf">
+	</div>
+	<div class="form-row">
+		<label for="node-input-device"><i class="icon-tag"></i> Device</label>
+		<select id="node-input-device">
+		</select>
+        <a id="node-input-device-refresh" class="btn"><i class="fa fa-refresh"></i></a>
+	</div>
+    <input type="hidden" id="node-input-name">
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="alexa-smart-home-v3-state">
+    <p>This node provides state reporting to the Web App.</p>
+    <p>Place this node after MQTT out or similar nodes.</p>
+    <p>Requires:</p>
+    <ul>
+        <li>msg.capability to be set to an aligned Alexa Smart Home Skill Controller</li>
+        <li>msg.payload to be as outlined below</li>
+    </ul>
+    <p>Example capability and payloads:</p>
+    <ul>
+        <li> msg.capability: BrightnessController | msg.payload: brightness percentage, number range of 0-100</li>
+        <li> msg.capability: ColorController | msg.payload: to contain three numerical properties "hue", "saturation" and "brightness", in range of 0-360 for hue and 0-1 for saturation and brightness</li>
+        <li> msg.capability: ColorTemperatureController | msg.payload: to contain number represetning colorTemperatureInKelvin, in range of 0-10000</li>
+        <li> msg.capability: InputController | msg.payload: string, no specifics as supported input will grow</li>
+        <li> msg.capability: LockController | msg.payload: string, either "LOCKED" or "UNLOCKED"</li>
+        <li> msg.capability: PlaybackController | msg.payload: string, no specifics as supported commands will grow</li>
+        <li> msg.capability: PowerController | msg.payload: string, either "ON" or "OFF"</li>
+        <li> msg.capability: SceneController | msg.payload: brightness percentage, number range of 0-100</li>
+        <li> msg.capability: StepSpeakerController | NOT SUPPORTED</li>
+        <li> msg.capability: ThermostatController | msg.payload: to contain temperature and state, number for temperature, string for state</li>
+    </ul>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType('alexa-smart-home-v3-state',{
+        category: 'alexa',
+        defaults: {
+        	conf: {value: "", type:"alexa-smart-home-v3-conf"},
+        	device: {value: "" },
+            acknowledge: {value: true},
+        	name: {},
+            topic: {}
+        },
+        outputs: 0,
+        inputs: 1,
+        color: '#D3D3D3',
+        icon: 'alexa.png',
+        label: function() {
+        	return this.name || "Alexa Smart Home v3 State";
+        },
+        oneditsave: function() {
+             var n = $('#node-input-device option:selected').text();
+            //console.log("selected name " + n);
+            this.name = n;
+            $('#node-input-name').val(n);
+        },
+        oneditprepare: function(){
+            var node = this;
+
+            $('#node-input-device').change(function(){
+                $('#node-input-name').val($('#node-input-device option:selected').text());
+            });
+
+            var getDevs = function (account){
+                $.getJSON('alexa-smart-home-v3/devices/' + account, function(data){
+                    $('#node-input-device').find('option').remove().end();
+                    for (d in data) {
+                        console.log("device info:", data[d].endpointId, data[d].friendlyName )
+                        $('<option/>',{
+                        value: parseInt(data[d].endpointId),
+                            text: data[d].friendlyName
+                        }).appendTo('#node-input-device');
+                    }
+                    if (node.device) {
+                        $('#node-input-device').val(node.device);
+                    }
+                }).fail(function(jqXHR, textStatus, errorThrown){
+                    console.log("problem getting devices");
+                    console.log(textStatus);
+                });
+                
+            }
+
+        	if (node.conf) {
+        		var account = $('#node-input-conf').val();
+                //console.log("account: ", account);
+        		if (account != '_ADD_') {
+	        		getDevs(account);
+        		}
+        	}
+
+        	$('#node-input-conf').change(function(){
+        		var account = $('#node-input-conf').val();
+                //console.log("account changed: ", account);
+                if (account != '_ADD_') {
+            		getDevs(account);
+                } else {
+                    //console.log("new account");
+                    $('#node-input-device').find('option').remove().end();
+                    $('#node-input-device').val("");
+                }
+        	});
+
+            $('#node-input-device-refresh').click(function(){
+                $('#node-input-device-refresh').addClass('disabled');
+                var account = $('#node-input-conf').val();
+                $.ajax({
+                    url: 'alexa-smart-home-v3/refresh/' + account,
+                    type: 'POST'
+                }).done(function(data){
+                    setTimeout(function(){
+                        getDevs(account);
+                        $('#node-input-device-refresh').removeClass('disabled');
+                    },3000);
+                });
+            });
+        }
+    });
+</script>
+
+<!-- ############################################################################################## -->
+
+
 <script type="text/x-red" data-template-name="alexa-smart-home-v3-resp">
 </script>
 
