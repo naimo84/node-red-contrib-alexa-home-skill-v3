@@ -21,37 +21,20 @@ module.exports = function(RED) {
     var bodyParser = require('body-parser');
 
     // Change these to match your hosting environment
-    var webHost = "nr-alexav3.cb-net.co.uk";
-    var mqttHost = "mq-alexav3.cb-net.co.uk";
+    //var webHost = "nr-alexav3.cb-net.co.uk";
+    //var mqttHost = "mq-alexav3.cb-net.co.uk";
+    //var devicesURL = "https://" + webHost + "/api/v1/devices";
 
-    var devicesURL = "https://" + webHost + "/api/v1/devices";
     var devices = {};
 
     function alexaConf(n) {
     	RED.nodes.createNode(this,n);
     	this.username = n.username;
     	this.password = this.credentials.password;
-
         this.users = {};
-
     	var node = this;
 
-        // Testing ONLY
-        /*  process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0;
-        var options = {
-            username: node.username,
-            password: node.password,
-            clientId: node.username,
-            reconnectPeriod: 5000,
-            servers:[{
-                    protocol: 'mqtt',
-                    host: mqttHost,
-                    port: 1883
-                }
-            ]
-        }; */
-
-        // Production config
+        // MQTT connect options
          var options = {
             username: node.username,
             password: node.password,
@@ -60,18 +43,21 @@ module.exports = function(RED) {
             servers:[
                 {
                     protocol: 'mqtts',
-                    host: mqttHost,
+                    host: node.mqttserver,
                     port: 8883
                 },
                 {
                     protocol: 'mqtt',
-                    host: mqttHost,
+                    host: node.mqttserver,
                     port: 1883
                 }
             ]
         };
 
-        getDevices(node.username, node.password, node.id);
+        // mqttserver: node.mqttserver,
+        // webapiurl: node.webapiurl,
+        // ## modified to include webapiurl
+        getDevices(node.webapiurl, node.username, node.password, node.id);
 
         this.connect = function() {
             node.client = mqtt.connect(options);
@@ -174,12 +160,26 @@ module.exports = function(RED) {
                     // [..]
                 //}
 
-        this.updateState = function(messageId, endpointId, capability, payload) {
-            var response = {
-                messageId: messageId,
-                capability: capability,
-                payload: payload
+        this.updateState = function(messageId, endpointId, payload) {
+        var response = {
+            messageId: messageId,
+            capability: capability,
+            payload: {
+                state: {
+                    "power": payload.state.power,
+                    "brightness": payload.state.brightness,
+                    "colorHue": payload.state.colorHue,
+                    "colorSaturation": payload.state.colorSaturation,
+                    "colorTemperature": payload.state.colorTemperature,
+                    "input": payload.state.input,
+                    "lock": payload.state.lock,
+                    "playback": payload.state.playback,
+                    "thermostatMode": payload.state.thermostatMode,
+                    "thermostatSetPoint" : payload.state.thermostatSetPoint
+                    }
+                }
             };
+
             console.log("State update: " + response);
             var topic = 'state/' + node.username + '/' + endpointId;
             if (node.client && node.client.connected) {
@@ -326,95 +326,77 @@ module.exports = function(RED) {
 
     // ##########################################################
 
-    // Think this is OK for v3 API
+    // New node/ functionality
     function alexaHomeState(n) {
         RED.nodes.createNode(this,n);
-
     	this.conf = RED.nodes.getNode(n.conf);
         this.confId = n.conf;
     	this.device = n.device;
         this.name = n.name;
-
         var node = this;
 
         // On Input publish MQTT message to /state/<username>/<endpointId>
         node.on('input',function(msg){
-            // Need to build device state here //
-
-            // Requires "msg.capability" to be set to an aligned Alexa Smart Home Skill Controller
-            // Expects msg.payload to be as outlined under switch/ case statements
-
-            if (msg.capability) {              
-                // Check msg.capability is valid, will pass this to WebAPI
-                var deviceState;
-                var capabilityValid = false;
+            // State update could be for any state(s), validate the state message falls within expected params
+            if (msg.payload.hasOwnProperty('state')) {
+                // Default logic is that received message is not valid. we validate it below
                 var stateValid = false;
+                // Perform validation of device state payload, expects payload.state to contain as below
+                //     "power": payload.state.power,
+                //     "brightness": payload.state.brightness,
+                //     "colorHue": payload.state.colorHue,
+                //     "colorSaturation": payload.state.colorSaturation,
+                //     "colorTemperature": payload.state.colorTemperature,
+                //     "input": payload.state.input,
+                //     "lock": payload.state.lock,
+                //     "playback": payload.state.playback,
+                //     "thermostatMode": payload.state.thermostatMode,
+                //     "thermostatSetPoint" : payload.state.thermostatSetPoint
 
-                // Perform validation of Device Capability/ Payload
-                switch(msg.capability){
-                    case "BrightnessController": // Expects payload to contain brightness percentage, in range of 0-100
-                        if (typeof msg.payload == 'number' && msg.payload >= 0 && msg.payload <= 100) {stateValid = true};
-                        capabilityValid = true;
-                        break;
-                    case "ColorController":  // Expects payload to include hue, saturation and brightness, in range of 0-360 for hue and 0-1 for saturation and brightness
-                        if (msg.payload.hasOwnProperty('hue') && msg.payload.hasOwnProperty('saturation') && msg.payload.hasOwnProperty('brightness')) {
-                            if (msg.payload.hue >= 0 && msg.payload.hue <= 360 && msg.payload.saturation >= 0 
-                                && msg.payload.saturation <= 1 && msg.payload.brightness >= 0 && msg.payload.brightness <= 1) {stateValid = true};
-                        };
-                        capabilityValid = true;
-                        break;
-                    case "ColorTemperatureController": // Expects payload to contain colorTemperatureInKelvin, in range of 0-10000
-                        //update lastknownState.ColorTemperatureController
-                        if (typeof msg.payload == 'number' && msg.payload >= 0 && msg.payload <= 10000) {stateValid = true};
-                        capabilityValid = true;
-                        break;
-                    case "InputController": // Expects payload to be string, inputs will grow so no point in specific string checking
-                        if (typeof msg.payload == 'string') {stateValid = true};
-                        capabilityValid = true;
-                        break;
-                    case "LockController": // Expects payload to be string, either LOCKED or UNLOCKED
-                        if (typeof msg.payload == 'string') {
-                            if (msg.payload == "LOCKED" || msg.payload == "UNLOCKED") {stateValid = true};
-                        };
-                        capabilityValid = true;
-                        break;
-                    case "PlaybackController": // Expects payload to be string
-                        if (typeof msg.payload == 'string') {stateValid = true};
-                        capabilityValid = true;
-                        break;
-                    case "PowerController": // Expects payload to be string, either ON or OFF
-                        if (typeof msg.payload == 'string') {
-                            if (msg.payload == "ON" || msg.payload == "OFF") {stateValid = true};
-                        };
-                        capabilityValid = true;
-                        break;
-                    case "SceneController": // Expects payload to be string, either ON or OFF
-                        if (typeof msg.payload == 'string') {
-                            if (msg.payload == "ON" || msg.payload == "OFF") {stateValid = true};
-                        };
-                        capabilityValid = true;
-                        break;
-                    case "StepSpeakerController": // Can't return status on somehting that is unknown
-                        capabilityValid = false;
-                        break;
-                    case "ThermostatController":// Expects payload to contain temperature and string, temperature is number, state is string
-                        if (msg.payload.hasOwnProperty(temperature) && msg.payload.hasOwnProperty(mode)) {
-                            if (typeof msg.payload.temperature == 'number' && msg.payload.mode == 'string') {stateValid = true};
-                            capabilityValid = true;
-                        }
-                        break;
+                // Brightness state, expect state to be a number in range of 0-100
+                if (msg.payload.state.hasOwnProperty('brightness')) {
+                    if (typeof msg.payload.state.brightness == 'number' && msg.payload.state.brightness >= 0 && msg.payload.state.brightness <= 100) {stateValid = true};
                 }
-            
+                // Color state, expect state to include hue, saturation and brightness, in range of 0-360 for hue and 0-1 for saturation and brightness
+                if (msg.payload.state.hasOwnProperty('hue') && msg.payload.state.hasOwnProperty('saturation') && msg.payload.state.hasOwnProperty('brightness')) {
+                    if ((msg.payload.state.hue >= 0 && msg.payload.state.hue <= 360)
+                        && (msg.payload.state.saturation >= 0 && msg.payload.state.saturation <= 1)
+                        && (msg.payload.state.brightness >= 0 && msg.payload.state.brightness <= 1)) {stateValid = true};
+                }
+                // Color Temperature, expect state to include colorTemperatureInKelvin, in range of 0-10000
+                if (msg.payload.state.hasOwnProperty('colorTemperature')) {
+                    if (typeof msg.payload.state.colorTemperature == 'number' && (msg.payload.state.colorTemperature >= 0 && msg.payload.state.colorTemperature) <= 10000) {stateValid = true};
+                }
+                // Input state, expect string, inputs will grow so no point in specific string checking
+                if (msg.payload.state.hasOwnProperty('input')) {
+                    if (typeof msg.payload.state.input == 'string') {stateValid = true};
+                }
+                // Lock state, expect string, either LOCKED or UNLOCKED
+                if (msg.payload.state.hasOwnProperty('lock')) {
+                    if (typeof msg.payload.state.lock == 'string' && (msg.payload.state.lock == "LOCKED" || msg.payload.state.lock == "UNLOCKED")) {stateValid = true};
+                    }
+                }
+                // Power state, expect state to be string, either ON or OFF
+                if (msg.payload.state.hasOwnProperty('power')) {
+                    if (typeof msg.payload.state.power == 'string' && (msg.payload.state.power == 'ON' || msg.payload.state.power == 'OFF')) {stateValid = true};
+                }
+                // ThermostatMode state, expect state to be a string
+                if (msg.payload.state.hasOwnProperty(thermostatMode)) {
+                    if (typeof msg.payload.state.thermostatMode == 'string') {stateValid = true};
+                }
+                // ThermostatSetPoint state, expect state to be a number
+                if (msg.payload.hasOwnProperty(thermostatSetPoint)) {
+                    if (typeof msg.payload.state.thermostatSetPoint == 'number') {stateValid = true};
+                }
+
                 var conf = RED.nodes.getNode(msg._confId);
-                if (capabilityValid && stateValid) {
+                if (stateValid) {
                     // Send messageId, deviceId, capability and payload to updateState
                     var messageId = uuid();
-                    conf.updateState(messageId, this.device, msg.capability, msg.payload);
+                    conf.updateState(messageId, this.device, msg.payload);
                 }
-                else if (!capabilityValid) {console.log("Invalid capability, check msg.capability")}
                 else if (!stateValid) {console.log("Valid capability but state invalid, check msg.payload")}
-            }
-
+            
             node.conf.register(node);
 
             node.on('close', function(done){
@@ -436,10 +418,11 @@ module.exports = function(RED) {
     RED.httpAdmin.use('/alexa-smart-home-v3/new-account',bodyParser.json());
 
     // Shouldn't need a change?
-    function getDevices(username, password, id){
-        if (username && password) {
+    // ## Changed to include url in expected params
+    function getDevices(url, username, password, id){
+        if (url && username && password) {
             request.get({
-                url: devicesURL,
+                url: url,
                 auth: {
                     username: username,
                     password: password
@@ -475,9 +458,11 @@ module.exports = function(RED) {
     RED.httpAdmin.post('/alexa-smart-home-v3/new-account',function(req,res){
     	//console.log(req.body);
     	var username = req.body.user;
-    	var password = req.body.pass;
-    	var id = req.body.id;
-    	getDevices(username,password,id);
+        var password = req.body.pass;
+        var url = req.body.webapi;
+        var id = req.body.id;
+        // ## Modified
+    	getDevices(url, username,password,id);
     });
 
     // Re-branded for v3 API
@@ -487,7 +472,8 @@ module.exports = function(RED) {
         if (conf) {
             var username = conf.username;
             var password = conf.credentials.password;
-            getDevices(username,password,id);
+            var url = conf.webapiurl;
+            getDevices(url, username,password,id);
             res.status(200).send();
         } else {
             //not deployed yet

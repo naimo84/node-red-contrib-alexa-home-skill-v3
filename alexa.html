@@ -18,7 +18,15 @@
 	<div class="form-row">
 	   	<label for="node-config-input-password"><i class="icon-tag"></i> Password</label>
 	    <input type="password" id="node-config-input-password">
-	</div>
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-mqttserver"><i class="icon-tag"></i> MQTT Server (do not include mqtt&#58&#47&#47) </label>
+     <input type="text" id="node-config-input-mqttserver">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-webapiurl"><i class="icon-tag"></i> Web API Server (do not include https&#58&#47&#47) </label>
+    <input type="text" id="node-config-input-webapiurl">
+    </div>
 </script>
 
 <script type="text/x-red" data-help-name="alexa-smart-home-v3-conf">
@@ -27,28 +35,35 @@
 </script>
 
 <script type="text/javascript">
+    // ## Modified to include mqtt / webapi services ??
     RED.nodes.registerType('alexa-smart-home-v3-conf',{
         category: 'config',
         defaults: {
-        	username: {}
+            username: {},
+            mqttserver: {},
+            webapiurl: {}
         },
         credentials: {
             password: {type:"password"}
         },
         color: '#D3D3D3',
         label: function() {
-        	return this.username;
+        	return this.webapiurl + ":" + this.username;
         },
         oneditsave: function(){
         	var node = this;
         	var user = $('#node-config-input-username').val();
-        	var pass = $('#node-config-input-password').val();
+            var pass = $('#node-config-input-password').val();
+            var mqttserver = $('#node-config-input-mqttserver').val();
+            var webapiurl = "https://" + $('#node-config-input-webapiurl').val() + "/api/v1/devices";
             console.log("pass: ", pass);
+            // ## Modified to include webapi services
         	if (pass != '_PWD_') {
         		var account = {
         			id: node.id,
         			user: user,
-        			pass: pass
+                    pass: pass,
+                    webapi: webapiurl
         		}
         		$.ajax({
         			data: JSON.stringify(account),
@@ -70,7 +85,6 @@
 	<div class="form-row">
 		<label for="node-input-device"><i class="icon-tag"></i> Device</label>
 		<select id="node-input-device">
-		
 		</select>
         <a id="node-input-device-refresh" class="btn"><i class="fa fa-refresh"></i></a>
 	</div>
@@ -136,6 +150,7 @@
                 $('#node-input-name').val($('#node-input-device option:selected').text());
             });
 
+            // ## Modify this to store capabilities/ diaplyCategories
             var getDevs = function (account){
                 $.getJSON('alexa-smart-home-v3/devices/' + account, function(data){
                     $('#node-input-device').find('option').remove().end();
