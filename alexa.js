@@ -338,7 +338,7 @@ module.exports = function(RED) {
             if (msg.command == "Lock"){msg.payload = {"state":{"brightness":"LOCKED"}}}
             else if (msg.command == "SetBrightness"){msg.payload = {"state":{"brightness":msg.payload}}}
             else if (msg.command == "SetColorTemperature"){msg.payload = {"state":{"colorTemperature":msg.payload}}}
-            else if (msg.command == "SetColor"){msg.payload={"state":{"colorHue": msg.payload.hue,"colorSaturation":msg.payload.saturation,"brightness":msg.brightness}}}
+            else if (msg.command == "SetColor"){msg.payload={"state":{"colorHue": msg.payload.hue,"colorSaturation":msg.payload.saturation,"brightness":msg.payload.brightness}}}
             else if (msg.command == "SelectInput"){msg.payload={"state":{"input":msg.payload}}}
             else if (msg.command == "SetTargetTemperature"){msg.payload={"state":{"thermostatSetPoint":msg.payload,"scale":msg.temperatureScale}}}
             else if (msg.command == "TurnOff" || msg.command == "TurnOn"){msg.payload={"state":{"power":msg.payload}}}
