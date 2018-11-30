@@ -156,6 +156,7 @@ module.exports = function(RED) {
         // ########################################################## 
         // ReportState Function
         this.updateState = function(messageId, endpointId, payload) {
+
         var response = {
             messageId: messageId,
             payload: {
@@ -168,11 +169,11 @@ module.exports = function(RED) {
                     "input": payload.state.input,
                     "lock": payload.state.lock,
                     "playback": payload.state.playback,
-                    "thermostatMode": payload.state.thermostatMode,
                     "thermostatSetPoint" : payload.state.thermostatSetPoint
                     }
                 }
             };
+
 
             console.log("State update: " + response);
             var topic = 'state/' + node.username + '/' + endpointId;
@@ -334,6 +335,17 @@ module.exports = function(RED) {
         // On Input publish MQTT message to /state/<username>/<endpointId>
         node.on('input',function(msg){
             // State update could be for any state(s), validate the state message falls within expected params
+
+            // Handle AlexaHome output
+            if (msg.command == "Lock"){msg.payload = {"payload": {"state":{"brightness":"LOCKED"}}}}
+            else if (msg.command == "SetBrightness"){msg.payload = {"payload": {"state":{"brightness":msg.payload}}}}
+            else if (msg.command == "SetColorTemperature"){msg.payload = {"payload": {"state":{"colorTemperature":msg.payload}}}}
+            else if (msg.command == "SetColor"){msg.payload = {"payload": {"state":{"colorHue": msg.payload.hue,"colorSaturation":msg.payload.saturation,"brightness":msg.brightness}}}}
+            else if (msg.command == "SelectInput"){msg.payload = {"payload": {"state":{"input":msg.payload}}}}
+            else if (msg.command == "SetTargetTemperature"){msg.payload = {"payload": {"state":{"thermostatSetPoint":msg.payload,"scale":msg.temperatureScale}}}}
+            else if (msg.command == "TurnOff" || msg.command == "TurnOn"){msg.payload = {"payload": {"state":{"power":msg.payload}}}}
+            else if (msg.command == "Unlock"){msg.payload = {"payload": {"state":{"brightness":"UNLOCKED"}}}}
+
             if (msg.payload.hasOwnProperty('state')) {
                 // Default logic is that received message is not valid. we validate it below
                 var stateValid = false;
@@ -376,10 +388,7 @@ module.exports = function(RED) {
                 if (msg.payload.state.hasOwnProperty('power')) {
                     if (typeof msg.payload.state.power == 'string' && (msg.payload.state.power == 'ON' || msg.payload.state.power == 'OFF')) {stateValid = true};
                 }
-                // ThermostatMode state, expect state to be a string
-                if (msg.payload.state.hasOwnProperty('thermostatMode')) {
-                    if (typeof msg.payload.state.thermostatMode == 'string') {stateValid = true};
-                }
+
                 // ThermostatSetPoint state, expect state to be a number
                 if (msg.payload.state.hasOwnProperty('thermostatSetPoint')) {
                     if (typeof msg.payload.state.thermostatSetPoint == 'number') {stateValid = true};
