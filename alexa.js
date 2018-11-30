@@ -109,8 +109,6 @@ module.exports = function(RED) {
 
         this.register = function(deviceNode) {
             node.users[deviceNode.id] = deviceNode;
-            console.log ("Child node id: " + deviceNode.id);
-
             // Connect only on first node register/ connect
             if (Object.keys(node.users).length === 1) {
                 
@@ -145,7 +143,7 @@ module.exports = function(RED) {
                 success: success
             };
 
-            console.log("response: " + response);
+            console.log("Response: " + JSON.stringify(response));
 
             var topic = 'response/' + node.username + '/' + device;
             if (node.client && node.client.connected) {
@@ -175,7 +173,7 @@ module.exports = function(RED) {
             };
 
 
-            console.log("State update: " + response);
+            console.log("State update: " + JSON.stringify(response));
             var topic = 'state/' + node.username + '/' + endpointId;
             if (node.client && node.client.connected) {
                 node.client.publish(topic, JSON.stringify(response));
@@ -337,14 +335,16 @@ module.exports = function(RED) {
             // State update could be for any state(s), validate the state message falls within expected params
 
             // Handle AlexaHome output
-            if (msg.command == "Lock"){msg.payload = {"payload": {"state":{"brightness":"LOCKED"}}}}
-            else if (msg.command == "SetBrightness"){msg.payload = {"payload": {"state":{"brightness":msg.payload}}}}
-            else if (msg.command == "SetColorTemperature"){msg.payload = {"payload": {"state":{"colorTemperature":msg.payload}}}}
-            else if (msg.command == "SetColor"){msg.payload = {"payload": {"state":{"colorHue": msg.payload.hue,"colorSaturation":msg.payload.saturation,"brightness":msg.brightness}}}}
-            else if (msg.command == "SelectInput"){msg.payload = {"payload": {"state":{"input":msg.payload}}}}
-            else if (msg.command == "SetTargetTemperature"){msg.payload = {"payload": {"state":{"thermostatSetPoint":msg.payload,"scale":msg.temperatureScale}}}}
-            else if (msg.command == "TurnOff" || msg.command == "TurnOn"){msg.payload = {"payload": {"state":{"power":msg.payload}}}}
-            else if (msg.command == "Unlock"){msg.payload = {"payload": {"state":{"brightness":"UNLOCKED"}}}}
+            if (msg.command == "Lock"){msg.payload = {"state":{"brightness":"LOCKED"}}}
+            else if (msg.command == "SetBrightness"){msg.payload = {"state":{"brightness":msg.payload}}}
+            else if (msg.command == "SetColorTemperature"){msg.payload = {"state":{"colorTemperature":msg.payload}}}
+            else if (msg.command == "SetColor"){msg.payload={"state":{"colorHue": msg.payload.hue,"colorSaturation":msg.payload.saturation,"brightness":msg.brightness}}}
+            else if (msg.command == "SelectInput"){msg.payload={"state":{"input":msg.payload}}}
+            else if (msg.command == "SetTargetTemperature"){msg.payload={"state":{"thermostatSetPoint":msg.payload,"scale":msg.temperatureScale}}}
+            else if (msg.command == "TurnOff" || msg.command == "TurnOn"){msg.payload={"state":{"power":msg.payload}}}
+            else if (msg.command == "Unlock"){msg.payload={"state":{"brightness":"UNLOCKED"}}}
+            
+            console.log("State msg.payload:" + JSON.stringify(msg.payload));
 
             if (msg.payload.hasOwnProperty('state')) {
                 // Default logic is that received message is not valid. we validate it below
