@@ -342,7 +342,7 @@ module.exports = function(RED) {
             else if (msg.command == "SelectInput"){msg.payload={"state":{"input":msg.payload}}}
             else if (msg.command == "SetTargetTemperature"){msg.payload={"state":{"thermostatSetPoint":msg.payload,"scale":msg.temperatureScale}}}
             else if (msg.command == "TurnOff" || msg.command == "TurnOn"){msg.payload={"state":{"power":msg.payload}}}
-            else if (msg.command == "Unlock"){msg.payload={"state":{"brightness":"UNLOCKED"}}}
+            else if (msg.command == "Unlock"){msg.payload={"state":{"lock":"UNLOCKED"}}}
             
             console.log("State msg.payload:" + JSON.stringify(msg.payload));
 
