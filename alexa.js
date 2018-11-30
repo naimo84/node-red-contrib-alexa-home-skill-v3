@@ -335,7 +335,7 @@ module.exports = function(RED) {
             // State update could be for any state(s), validate the state message falls within expected params
 
             // Handle AlexaHome output
-            if (msg.command == "Lock"){msg.payload = {"state":{"brightness":"LOCKED"}}}
+            if (msg.command == "Lock"){msg.payload = {"state":{"lock":"LOCKED"}}}
             else if (msg.command == "SetBrightness"){msg.payload = {"state":{"brightness":msg.payload}}}
             else if (msg.command == "SetColorTemperature"){msg.payload = {"state":{"colorTemperature":msg.payload}}}
             else if (msg.command == "SetColor"){msg.payload={"state":{"colorHue": msg.payload.hue,"colorSaturation":msg.payload.saturation,"brightness":msg.payload.brightness}}}
