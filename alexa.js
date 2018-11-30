@@ -29,8 +29,10 @@ module.exports = function(RED) {
 
     function alexaConf(n) {
     	RED.nodes.createNode(this,n);
-    	this.username = n.username;
+        this.username = n.username;
     	this.password = this.credentials.password;
+        this.mqttserver = n.mqttserver;
+        this.webapiurl = n.webapiurl;
         this.users = {};
     	var node = this;
 
@@ -65,6 +67,7 @@ module.exports = function(RED) {
 
             node.client.on('connect', function() {
                 node.setStatus({text:'connected', shape:'dot', fill:'green'});
+
                 node.client.removeAllListeners('message');
                 node.client.subscribe("command/" + node.username + "/#");
                 node.client.on('message', function(topic, message){
@@ -73,7 +76,7 @@ module.exports = function(RED) {
                     var endpointId = msg.directive.endpoint.endpointId;
                     for (var id in node.users) {
                         if (node.users.hasOwnProperty(id)){
-                            if (node.users[id].device === endpointId) {
+                            if (node.users[id].device === endpointId && node.users[id].type == "alexa-smart-home-v3") {
                                 node.users[id].command(msg);
                             }
                         }
@@ -106,9 +109,17 @@ module.exports = function(RED) {
 
         this.register = function(deviceNode) {
             node.users[deviceNode.id] = deviceNode;
+            console.log ("Child node id: " + deviceNode.id);
+
+            // Connect only on first node register/ connect
             if (Object.keys(node.users).length === 1) {
-                //connect
-                node.connect();
+                
+                if (deviceNode.type == "alexa-smart-home-v3") {
+                    node.connect();
+                }
+                //else if (deviceNode.type == "alexa-smart-home-v3-state") {
+                //    node.connect()
+                //}
             }
         };
 
@@ -142,28 +153,11 @@ module.exports = function(RED) {
             }
         };
 
-        // ##########################################################
-        // New function to report state, to be used on new node
-        // Plan, node will receive state information via Standard MQTT out/ another output 
-        // NodeJS WebApp is subscribed to state/#, so will intercept these messages
-                // On change API will update 'lastKnownState' object on device
-        // When Alexa queries/ requests state via Lambda web PI will check device state and return accordingly
-        //
-        // Need to be speciifc about deviceCapability and associated value, plus validate this. MongoDB property is as below:
-                // lastknownState {
-                    // BrightnessController
-                    // ThermostatController
-                    // PowerController
-                    // StepSpeakerController
-                    // PlaybackController
-                    // InputController
-                    // [..]
-                //}
-
+        // ########################################################## 
+        // ReportState Function
         this.updateState = function(messageId, endpointId, payload) {
         var response = {
             messageId: messageId,
-            capability: capability,
             payload: {
                 state: {
                     "power": payload.state.power,
@@ -213,6 +207,7 @@ module.exports = function(RED) {
         this.topic = n.topic;
         this.acknowledge = n.acknowledge;
         this.name = n.name;
+        this.type = n.type;
 
     	var node = this;
 
@@ -333,6 +328,7 @@ module.exports = function(RED) {
         this.confId = n.conf;
     	this.device = n.device;
         this.name = n.name;
+        this.type = n.type;
         var node = this;
 
         // On Input publish MQTT message to /state/<username>/<endpointId>
@@ -381,28 +377,26 @@ module.exports = function(RED) {
                     if (typeof msg.payload.state.power == 'string' && (msg.payload.state.power == 'ON' || msg.payload.state.power == 'OFF')) {stateValid = true};
                 }
                 // ThermostatMode state, expect state to be a string
-                if (msg.payload.state.hasOwnProperty(thermostatMode)) {
+                if (msg.payload.state.hasOwnProperty('thermostatMode')) {
                     if (typeof msg.payload.state.thermostatMode == 'string') {stateValid = true};
                 }
                 // ThermostatSetPoint state, expect state to be a number
-                if (msg.payload.hasOwnProperty(thermostatSetPoint)) {
+                if (msg.payload.state.hasOwnProperty('thermostatSetPoint')) {
                     if (typeof msg.payload.state.thermostatSetPoint == 'number') {stateValid = true};
                 }
 
-                var conf = RED.nodes.getNode(msg._confId);
                 if (stateValid) {
                     // Send messageId, deviceId, capability and payload to updateState
                     var messageId = uuid();
-                    conf.updateState(messageId, this.device, msg.payload);
+                    node.conf.updateState(messageId, this.device, msg.payload);
                 }
                 else if (!stateValid) {console.log("Valid capability but state invalid, check msg.payload")}
-            
-            node.conf.register(node);
+        });
 
-            node.on('close', function(done){
-                node.conf.deregister(node, done);
-            });
+        node.conf.register(node);
 
+        node.on('close', function(done){
+            node.conf.deregister(node, done);
         });
     }
     
@@ -422,7 +416,7 @@ module.exports = function(RED) {
     function getDevices(url, username, password, id){
         if (url && username && password) {
             request.get({
-                url: url,
+                url: "https://" + url + "/api/v1/devices",
                 auth: {
                     username: username,
                     password: password
@@ -456,7 +450,7 @@ module.exports = function(RED) {
 
     // Re-branded for v3 API
     RED.httpAdmin.post('/alexa-smart-home-v3/new-account',function(req,res){
-    	//console.log(req.body);
+        console.log("httpAdmin post", req.body);
     	var username = req.body.user;
         var password = req.body.pass;
         var url = req.body.webapi;

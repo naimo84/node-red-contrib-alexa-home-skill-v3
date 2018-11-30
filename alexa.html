@@ -20,18 +20,18 @@
 	    <input type="password" id="node-config-input-password">
     </div>
     <div class="form-row">
-        <label for="node-config-input-mqttserver"><i class="icon-tag"></i> MQTT Server (do not include mqtt&#58&#47&#47) </label>
+        <label for="node-config-input-mqttserver"><i class="icon-tag"></i> MQTT Hostname</label>
      <input type="text" id="node-config-input-mqttserver">
     </div>
     <div class="form-row">
-        <label for="node-config-input-webapiurl"><i class="icon-tag"></i> Web API Server (do not include https&#58&#47&#47) </label>
+        <label for="node-config-input-webapiurl"><i class="icon-tag"></i> Web API Hostname</label>
     <input type="text" id="node-config-input-webapiurl">
     </div>
 </script>
 
 <script type="text/x-red" data-help-name="alexa-smart-home-v3-conf">
 	<p>If you don't have an account on the bridge create one 
-    <a target="_blank" href="https://nr-alexav3.cb-net.co.uk">here</a>.</p>
+    <a target="_blank" href="https://nr-alexav3-dev.cb-net.co.uk">here</a>.</p>
 </script>
 
 <script type="text/javascript">
@@ -48,21 +48,22 @@
         },
         color: '#D3D3D3',
         label: function() {
-        	return this.webapiurl + ":" + this.username;
+        	return this.username;
         },
         oneditsave: function(){
         	var node = this;
         	var user = $('#node-config-input-username').val();
             var pass = $('#node-config-input-password').val();
             var mqttserver = $('#node-config-input-mqttserver').val();
-            var webapiurl = "https://" + $('#node-config-input-webapiurl').val() + "/api/v1/devices";
+            // ## Modified, removed https:// + API path
+            var webapiurl = $('#node-config-input-webapiurl').val();
             console.log("pass: ", pass);
-            // ## Modified to include webapi services
         	if (pass != '_PWD_') {
         		var account = {
         			id: node.id,
         			user: user,
                     pass: pass,
+                    mqtt: mqttserver,
                     webapi: webapiurl
         		}
         		$.ajax({
@@ -142,7 +143,6 @@
 
             //console.log("foo " + node.device);
             if (typeof node.acknowledge === 'undefined') {
-                console.log("ben");
                 $('#node-input-acknowledge').prop('checked', true);
             }
 
@@ -150,7 +150,6 @@
                 $('#node-input-name').val($('#node-input-device option:selected').text());
             });
 
-            // ## Modify this to store capabilities/ diaplyCategories
             var getDevs = function (account){
                 $.getJSON('alexa-smart-home-v3/devices/' + account, function(data){
                     $('#node-input-device').find('option').remove().end();
@@ -173,7 +172,7 @@
 
         	if (node.conf) {
         		var account = $('#node-input-conf').val();
-                //console.log("account: ", account);
+                console.log("account: ", account);
         		if (account != '_ADD_') {
 	        		getDevs(account);
         		}
@@ -181,11 +180,11 @@
 
         	$('#node-input-conf').change(function(){
         		var account = $('#node-input-conf').val();
-                //console.log("account changed: ", account);
+                console.log("account changed: ", account);
                 if (account != '_ADD_') {
             		getDevs(account);
                 } else {
-                    //console.log("new account");
+                    console.log("new account");
                     $('#node-input-device').find('option').remove().end();
                     $('#node-input-device').val("");
                 }
@@ -228,24 +227,7 @@
 <script type="text/x-red" data-help-name="alexa-smart-home-v3-state">
     <p>This node provides state reporting to the Web App.</p>
     <p>Place this node after MQTT out or similar nodes.</p>
-    <p>Requires:</p>
-    <ul>
-        <li>msg.capability to be set to an aligned Alexa Smart Home Skill Controller</li>
-        <li>msg.payload to be as outlined below</li>
-    </ul>
-    <p>Example capability and payloads:</p>
-    <ul>
-        <li> msg.capability: BrightnessController | msg.payload: brightness percentage, number range of 0-100</li>
-        <li> msg.capability: ColorController | msg.payload: to contain three numerical properties "hue", "saturation" and "brightness", in range of 0-360 for hue and 0-1 for saturation and brightness</li>
-        <li> msg.capability: ColorTemperatureController | msg.payload: to contain number represetning colorTemperatureInKelvin, in range of 0-10000</li>
-        <li> msg.capability: InputController | msg.payload: string, no specifics as supported input will grow</li>
-        <li> msg.capability: LockController | msg.payload: string, either "LOCKED" or "UNLOCKED"</li>
-        <li> msg.capability: PlaybackController | msg.payload: string, no specifics as supported commands will grow</li>
-        <li> msg.capability: PowerController | msg.payload: string, either "ON" or "OFF"</li>
-        <li> msg.capability: SceneController | msg.payload: brightness percentage, number range of 0-100</li>
-        <li> msg.capability: StepSpeakerController | NOT SUPPORTED</li>
-        <li> msg.capability: ThermostatController | msg.payload: to contain temperature and state, number for temperature, string for state</li>
-    </ul>
+    <p>Requires msg.payload.state</p>
 </script>
 
 <script type="text/javascript">
@@ -254,7 +236,6 @@
         defaults: {
         	conf: {value: "", type:"alexa-smart-home-v3-conf"},
         	device: {value: "" },
-            acknowledge: {value: true},
         	name: {},
             topic: {}
         },
@@ -300,7 +281,7 @@
 
         	if (node.conf) {
         		var account = $('#node-input-conf').val();
-                //console.log("account: ", account);
+                console.log("account: ", account);
         		if (account != '_ADD_') {
 	        		getDevs(account);
         		}
@@ -308,11 +289,11 @@
 
         	$('#node-input-conf').change(function(){
         		var account = $('#node-input-conf').val();
-                //console.log("account changed: ", account);
+                console.log("account changed: ", account);
                 if (account != '_ADD_') {
             		getDevs(account);
                 } else {
-                    //console.log("new account");
+                    console.log("new account");
                     $('#node-input-device').find('option').remove().end();
                     $('#node-input-device').val("");
                 }
