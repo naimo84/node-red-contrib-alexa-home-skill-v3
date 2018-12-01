@@ -340,7 +340,7 @@ module.exports = function(RED) {
             else if (msg.command == "SetColorTemperature"){msg.payload = {"state":{"colorTemperature":msg.payload}}}
             else if (msg.command == "SetColor"){msg.payload={"state":{"colorHue": msg.payload.hue,"colorSaturation":msg.payload.saturation,"brightness":msg.payload.brightness}}}
             else if (msg.command == "SelectInput"){msg.payload={"state":{"input":msg.payload}}}
-            else if (msg.command == "SetTargetTemperature"){msg.payload={"state":{"thermostatSetPoint":msg.payload,"scale":msg.temperatureScale}}}
+            else if (msg.command == "SetTargetTemperature"){msg.payload={"state":{"thermostatSetPoint":msg.payload}}}
             else if (msg.command == "TurnOff" || msg.command == "TurnOn"){msg.payload={"state":{"power":msg.payload}}}
             else if (msg.command == "Unlock"){msg.payload={"state":{"lock":"UNLOCKED"}}}
             
@@ -382,24 +382,22 @@ module.exports = function(RED) {
                 // Lock state, expect string, either LOCKED or UNLOCKED
                 if (msg.payload.state.hasOwnProperty('lock')) {
                     if (typeof msg.payload.state.lock == 'string' && (msg.payload.state.lock == "LOCKED" || msg.payload.state.lock == "UNLOCKED")) {stateValid = true};
-                    }
                 }
                 // Power state, expect state to be string, either ON or OFF
                 if (msg.payload.state.hasOwnProperty('power')) {
                     if (typeof msg.payload.state.power == 'string' && (msg.payload.state.power == 'ON' || msg.payload.state.power == 'OFF')) {stateValid = true};
                 }
-
                 // ThermostatSetPoint state, expect state to be a number
                 if (msg.payload.state.hasOwnProperty('thermostatSetPoint')) {
                     if (typeof msg.payload.state.thermostatSetPoint == 'number') {stateValid = true};
                 }
-
                 if (stateValid) {
                     // Send messageId, deviceId, capability and payload to updateState
                     var messageId = uuid();
                     node.conf.updateState(messageId, this.device, msg.payload);
                 }
-                else if (!stateValid) {console.log("Valid capability but state invalid, check msg.payload")}
+            }
+            else if (!stateValid) {console.log("Valid capability but state invalid, check msg.payload")}
         });
 
         node.conf.register(node);
