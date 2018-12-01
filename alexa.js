@@ -27,6 +27,7 @@ module.exports = function(RED) {
 
     var devices = {};
 
+    // Config Node
     function alexaConf(n) {
     	RED.nodes.createNode(this,n);
         this.username = n.username;
@@ -152,7 +153,7 @@ module.exports = function(RED) {
         };
 
         // ########################################################## 
-        // ReportState Function
+        // Config Node Update State
         this.updateState = function(messageId, endpointId, payload) {
 
         var response = {
@@ -197,7 +198,7 @@ module.exports = function(RED) {
         }
     });
 
-    // Updated for v3 API
+    // Command Node
     function alexaHome(n) {
     	RED.nodes.createNode(this,n);
     	this.conf = RED.nodes.getNode(n.conf);
@@ -209,7 +210,8 @@ module.exports = function(RED) {
         this.type = n.type;
 
     	var node = this;
-
+        
+        // Command Node Command Function
         node.command = function (message){
             //console.log("message", message)
             var msg ={
@@ -320,7 +322,7 @@ module.exports = function(RED) {
 
     // ##########################################################
 
-    // New node/ functionality
+    // Set State Node
     function alexaHomeState(n) {
         RED.nodes.createNode(this,n);
     	this.conf = RED.nodes.getNode(n.conf);
@@ -330,7 +332,7 @@ module.exports = function(RED) {
         this.type = n.type;
         var node = this;
 
-        // On Input publish MQTT message to /state/<username>/<endpointId>
+        // Set State Node On Input Function
         node.on('input',function(msg){
             // State update could be for any state(s), validate the state message falls within expected params
 
@@ -346,6 +348,7 @@ module.exports = function(RED) {
             
             console.log("State msg.payload:" + JSON.stringify(msg.payload));
 
+            // Set State Payload Handler
             if (msg.payload.hasOwnProperty('state')) {
                 // Default logic is that received message is not valid. we validate it below
                 var stateValid = false;
