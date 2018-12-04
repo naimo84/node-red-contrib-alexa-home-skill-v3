@@ -284,6 +284,9 @@ module.exports = function(RED) {
                     break;
             }
             
+            if (node.acknowledge) {msg.payload.acknowledge = true}
+            else {msg.payload.acknowledge = false}
+
             node.send(msg);
             if (node.acknowledge && respond) {
                 node.conf.acknowledge(message.directive.header.messageId, node.device, true);
@@ -349,7 +352,7 @@ module.exports = function(RED) {
             console.log("State msg.payload:" + JSON.stringify(msg.payload));
 
             // Set State Payload Handler
-            if (msg.payload.hasOwnProperty('state')) {
+            if (msg.payload.hasOwnProperty('state') && msg.payload.hasOwnProperty('acknowledged')) {
                 // Default logic is that received message is not valid. we validate it below
                 var stateValid = false;
                 // Perform validation of device state payload, expects payload.state to contain as below
@@ -394,13 +397,23 @@ module.exports = function(RED) {
                 if (msg.payload.state.hasOwnProperty('thermostatSetPoint')) {
                     if (typeof msg.payload.state.thermostatSetPoint == 'number') {stateValid = true};
                 }
-                if (stateValid) {
+                if (stateValid && msg.payload.acknowledge == true) {
                     // Send messageId, deviceId, capability and payload to updateState
                     var messageId = uuid();
                     node.conf.updateState(messageId, this.device, msg.payload);
                 }
+                else if (stateValid && msg.payload.acknowledge != true) {
+                    // Either auto-acknowledge is enabled on sender node, or validation has taken place
+                    console.log("Valid state update but msg.payload.acknowledge is false/ invalid")
+                }
+                else {
+                    // State update not valid, logic above will explain why
+                    console.log("State update is not valid")
+                }
+
             }
-            else if (!stateValid) {console.log("Valid capability but state invalid, check msg.payload")}
+            // State missing
+            else if (!stateValid) {console.log("msg.payload.state missing/ invalid, check msg.payload")}
         });
 
         node.conf.register(node);
