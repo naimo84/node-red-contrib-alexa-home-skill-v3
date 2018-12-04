@@ -310,7 +310,7 @@ module.exports = function(RED) {
         node.on('input',function(msg){
             if (msg._messageId && msg._endpointId && msg._confId) {
                 var conf = RED.nodes.getNode(msg._confId);
-                if (typeof msg.payload == 'boolean' && msg.payload) {
+                if (typeof msg.payload.acknowledge == 'boolean' && msg.payload.acknowledge) {
                     conf.acknowledge(msg._messageId, msg._endpointId, true);
                 } else {
                     conf.acknowledge(msg._messageId, msg._endpointId, false);
