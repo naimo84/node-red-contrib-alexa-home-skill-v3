@@ -422,7 +422,7 @@ module.exports = function(RED) {
 
             }
             // State missing
-            else if (!stateValid) {console.log("msg.payload.state missing/ invalid, check msg.payload")}
+            else if (!stateValid) {console.log("Error, msg.payload.state / msg.acknowledge missing/ invalid, check msg")}
         });
 
         node.conf.register(node);

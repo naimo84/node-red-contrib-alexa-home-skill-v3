@@ -103,7 +103,7 @@
 </script>
 
 <script type="text/x-red" data-help-name="alexa-smart-home-v3">
-	<p>This node provides an end point for an Alexa Home Skill.
+	<p>This node provides a Device end point for the Alexa Home Skill.
     To use this node you will need to create an account and declare some devices 
     <a target="_blank" href="https://nr-alexav3.cb-net.co.uk">here</a>. 
     You will also need to add the "Node-RED" skill to your Echo device</p>
@@ -112,7 +112,8 @@
     <p>The <i>Topic</i> field is optional and will be added to any messages sent from 
     the node.</p>
     <p>Auto Acknowledge tells Alexa the command suceeded no matter what. If you untick 
-    this option you will need to add a <i>Alexa Home Response</i> node to the flow.</p>
+    this option you will need to add a <i>Alexa Home Response</i> node to the flow, injecting
+    msg.acknowledge into your flow.</p>
 </script>
 
 <script type="text/javascript">
@@ -210,44 +211,44 @@
 <!-- ############################################################################################## -->
 
 <script type="text/x-red" data-template-name="alexa-smart-home-v3-state">
-	<div class="form-row">
-		<label for="node-input-conf"><i class="icon-tag"></i> Account</label>
-		<input type="text" id="node-input-conf">
-	</div>
-	<div class="form-row">
-		<label for="node-input-device"><i class="icon-tag"></i> Device</label>
-		<select id="node-input-device">
-		</select>
-        <a id="node-input-device-refresh" class="btn"><i class="fa fa-refresh"></i></a>
-	</div>
-    <input type="hidden" id="node-input-name">
-    </div>
+<div class="form-row">
+    <label for="node-input-conf"><i class="icon-tag"></i> Account</label>
+    <input type="text" id="node-input-conf">
+</div>
+<div class="form-row">
+    <label for="node-input-device"><i class="icon-tag"></i> Device</label>
+    <select id="node-input-device">
+    </select>
+    <a id="node-input-device-refresh" class="btn"><i class="fa fa-refresh"></i></a>
+</div>
+<input type="hidden" id="node-input-name">
+</div>
 </script>
 
 <script type="text/x-red" data-help-name="alexa-smart-home-v3-state">
-    <p>This node provides state reporting to the Web App.</p>
-    <p>Place this node after Alexa Smart Home v3, MQTT out or similar nodes.</p>
-    <p>Expects specific inbound message format, namely msg.payload.state and msg.acknowledge elements:</p>
-    <pre>
-        msg {
-            acknowledge: true,
-            payload {
-               state { 
-                   "power": ON/ OFF,
-                   "brightness": 0-100,
-                   "colorHue": 0-360,
-                   "colorSaturation": 0-1,
-                   "colorTemperature": 0-10000, 
-                   "input": string,
-                   "lock": LOCKED/ UNLOCKED,
-                   "playback": playback,
-                   "thermostatMode": HEAT/ COOL,
-                   "thermostatSetPoint" : temp in celsius or farenheit
-               }
-            }
+<p>This node provides state reporting to the Web App.</p>
+<p>Place this node after Alexa Smart Home v3, MQTT out or similar nodes.</p>
+<p>Expects specific inbound message format, namely msg.payload.state and msg.acknowledge elements:</p>
+<pre>
+msg {
+    acknowledge: true,
+    payload {
+        state { 
+            "power": ON/ OFF,
+            "brightness": 0-100,
+            "colorHue": 0-360,
+            "colorSaturation": 0-1,
+            "colorTemperature": 0-10000, 
+            "input": string,
+            "lock": LOCKED/ UNLOCKED,
+            "playback": playback,
+            "thermostatMode": HEAT/ COOL,
+            "thermostatSetPoint" : temp in celsius or farenheit
         }
-    </pre>
-    <p>Failure to include msg.acknowledge will result in the state update being discarded.</p>
+    }
+}
+</pre>
+<p>Failure to include msg.acknowledge (set to true, not "true") will result in the state update being discarded.</p>
 
 </script>
 
