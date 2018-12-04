@@ -294,6 +294,7 @@ module.exports = function(RED) {
             }
 
             node.send(msg);
+
             if (node.acknowledge && respond) {
                 node.conf.acknowledge(message.directive.header.messageId, node.device, true);
             }
@@ -355,7 +356,9 @@ module.exports = function(RED) {
             else if (msg.command == "TurnOff" || msg.command == "TurnOn"){msg.payload={"state":{"power":msg.payload}}}
             else if (msg.command == "Unlock"){msg.payload={"state":{"lock":"UNLOCKED"}}}
             
-            console.log("State msg.payload:" + JSON.stringify(msg.payload));
+            //console.log("State msg.payload:" + JSON.stringify(msg.payload));
+            //console.log("msg.acknowledge:" + msg.acknowledge);
+            //console.log("msg:" + JSON.stringify(msg));
 
             // Set State Payload Handler
             if (msg.payload.hasOwnProperty('state') && msg.hasOwnProperty('acknowledge')) {

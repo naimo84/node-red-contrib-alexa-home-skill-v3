@@ -226,8 +226,29 @@
 
 <script type="text/x-red" data-help-name="alexa-smart-home-v3-state">
     <p>This node provides state reporting to the Web App.</p>
-    <p>Place this node after MQTT out or similar nodes.</p>
-    <p>Requires msg.payload.state</p>
+    <p>Place this node after Alexa Smart Home v3, MQTT out or similar nodes.</p>
+    <p>Expects specific inbound message format, namely msg.payload.state and msg.acknowledge elements:</p>
+    <pre>
+        msg {
+            acknowledge: true,
+            payload {
+               state { 
+                   "power": ON/ OFF,
+                   "brightness": 0-100,
+                   "colorHue": 0-360,
+                   "colorSaturation": 0-1,
+                   "colorTemperature": 0-10000, 
+                   "input": string,
+                   "lock": LOCKED/ UNLOCKED,
+                   "playback": playback,
+                   "thermostatMode": HEAT/ COOL,
+                   "thermostatSetPoint" : temp in celsius or farenheit
+               }
+            }
+        }
+    </pre>
+    <p>Failure to include msg.acknowledge will result in the state update being discarded.</p>
+
 </script>
 
 <script type="text/javascript">
