@@ -284,8 +284,14 @@ module.exports = function(RED) {
                     break;
             }
             
-            if (node.acknowledge) {msg.payload.acknowledge = true}
-            else {msg.payload.acknowledge = false}
+            if (node.acknowledge) {
+                msg.acknowledge = {};
+                msg.acknowledge = true;
+            }
+            else {
+                msg.acknowledge = {};
+                msg.acknowledge = false;   
+            }
 
             node.send(msg);
             if (node.acknowledge && respond) {
@@ -313,7 +319,7 @@ module.exports = function(RED) {
         node.on('input',function(msg){
             if (msg._messageId && msg._endpointId && msg._confId) {
                 var conf = RED.nodes.getNode(msg._confId);
-                if (typeof msg.payload.acknowledge == 'boolean' && msg.payload.acknowledge) {
+                if (typeof msg.acknowledge == 'boolean' && msg.acknowledge) {
                     conf.acknowledge(msg._messageId, msg._endpointId, true);
                 } else {
                     conf.acknowledge(msg._messageId, msg._endpointId, false);
@@ -352,7 +358,7 @@ module.exports = function(RED) {
             console.log("State msg.payload:" + JSON.stringify(msg.payload));
 
             // Set State Payload Handler
-            if (msg.payload.hasOwnProperty('state') && msg.payload.hasOwnProperty('acknowledged')) {
+            if (msg.payload.hasOwnProperty('state') && msg.hasOwnProperty('acknowledge')) {
                 // Default logic is that received message is not valid. we validate it below
                 var stateValid = false;
                 // Perform validation of device state payload, expects payload.state to contain as below
@@ -397,12 +403,12 @@ module.exports = function(RED) {
                 if (msg.payload.state.hasOwnProperty('thermostatSetPoint')) {
                     if (typeof msg.payload.state.thermostatSetPoint == 'number') {stateValid = true};
                 }
-                if (stateValid && msg.payload.acknowledge == true) {
+                if (stateValid && msg.acknowledge == true) {
                     // Send messageId, deviceId, capability and payload to updateState
                     var messageId = uuid();
                     node.conf.updateState(messageId, this.device, msg.payload);
                 }
-                else if (stateValid && msg.payload.acknowledge != true) {
+                else if (stateValid && msg.acknowledge != true) {
                     // Either auto-acknowledge is enabled on sender node, or validation has taken place
                     console.log("Valid state update but msg.payload.acknowledge is false/ invalid")
                 }
