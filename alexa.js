@@ -340,12 +340,13 @@ module.exports = function(RED) {
     	this.device = n.device;
         this.name = n.name;
         this.type = n.type;
+        var nodeContext = this.context();
         var node = this;
 
         // Set State Node On Input Function
         node.on('input',function(msg){
             // State update could be for any state(s), validate the state message falls within expected params
-
+            var stateValid = false;
             // Handle AlexaHome output
             if (msg.command == "Lock"){msg.payload = {"state":{"lock":"LOCKED"}}}
             else if (msg.command == "SetBrightness"){msg.payload = {"state":{"brightness":msg.payload}}}
@@ -355,15 +356,38 @@ module.exports = function(RED) {
             else if (msg.command == "SetTargetTemperature"){msg.payload={"state":{"thermostatSetPoint":msg.payload}}}
             else if (msg.command == "TurnOff" || msg.command == "TurnOn"){msg.payload={"state":{"power":msg.payload}}}
             else if (msg.command == "Unlock"){msg.payload={"state":{"lock":"UNLOCKED"}}}
-            
             //console.log("State msg.payload:" + JSON.stringify(msg.payload));
             //console.log("msg.acknowledge:" + msg.acknowledge);
             //console.log("msg:" + JSON.stringify(msg));
 
+            var lastPayload = nodeContext.get('lastPayload');
+
+            // Avoid duplicate state updates into Web API
+            if (lastPayload) {
+                if (JSON.stringify(lastPayload) == JSON.stringify(msg.payload)) {
+                    nodeContext.set('duplicatePayload', true);
+                    //console.log("msg.payload:" + JSON.stringify(msg.payload));
+                    //console.log("lastPayload:" + JSON.stringify(lastPayload));
+                    //console.log("INFO, Duplicate state payload:" + nodeContext.get('duplicatePayload'));
+                }
+                else {
+                    nodeContext.set('duplicatePayload', false);
+                    nodeContext.set('lastPayload',msg.payload);
+                    //console.log("msg.payload:" + JSON.stringify(msg.payload));
+                    //console.log("lastPayload:" + JSON.stringify(lastPayload));
+                    //console.log("INFO, State payload is NOT duplicate, duplicatePayload:" + nodeContext.get('duplicatePayload'));
+                }
+            } 
+            else {
+                nodeContext.set('duplicatePayload', false);
+                nodeContext.set('lastPayload', msg.payload);
+                //console.log("lastPayload not set");
+                //console.log("msg.payload:" + JSON.stringify(msg.payload));
+                //console.log("INFO, State payload is NOT duplicate, duplicatePayload:" + nodeContext.get('duplicatePayload'));
+            }
+
             // Set State Payload Handler
-            if (msg.payload.hasOwnProperty('state') && msg.hasOwnProperty('acknowledge')) {
-                // Default logic is that received message is not valid. we validate it below
-                var stateValid = false;
+            if (msg.payload.hasOwnProperty('state') && msg.hasOwnProperty('acknowledge') && nodeContext.get('duplicatePayload') == false) {
                 // Perform validation of device state payload, expects payload.state to contain as below
                 //     "power": payload.state.power,
                 //     "brightness": payload.state.brightness,
@@ -419,10 +443,19 @@ module.exports = function(RED) {
                     // State update not valid, logic above will explain why
                     console.log("State update is not valid")
                 }
-
             }
             // State missing
-            else if (!stateValid) {console.log("Error, msg.payload.state / msg.acknowledge missing/ invalid, check msg")}
+            else if (!msg.payload.hasOwnProperty('state')) { 
+                console.log("WARNING, Missing msg.payload.state")
+            }
+            // Acknowledge missing
+            else if (!msg.hasOwnProperty('acknowledge')) { 
+                console.log("WARNING, Missing msg.acknowledge")
+            }
+            // Duplicate State Update
+            else if (nodeContext.get('duplicatePayload')) { 
+                console.log("INFO, Discarded duplicate state payload")
+            }
         });
 
         node.conf.register(node);
