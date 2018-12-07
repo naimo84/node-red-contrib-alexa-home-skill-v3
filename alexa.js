@@ -342,7 +342,51 @@ module.exports = function(RED) {
         this.type = n.type;
         var nodeContext = this.context();
         var node = this;
+        var onGoingCommands = {};
+        // Timer to rate limit messages
+        var timer = setInterval(function() {    
+            var now = Date.now();
+            var keys = Object.keys(onGoingCommands);
+            var key;
+            nodeContext.set('tmpCommand',""); 
+            nodeContext.set('tmpKey',"");
+            for (key in keys){
+                var stateUpdate= onGoingCommands[keys[key]];
+                if (stateUpdate) {
+                    if (!nodeContext.get('tmpCommand') || nodeContext.get('tmpCommand') == "") { // Capture first state update
+                        nodeContext.set('tmpCommand',onGoingCommands[keys[key]]);
+                        nodeContext.set('tmpKey',key);
+                    }
+                    else { // If newer command same as previous, delete previous
+                        //console.log("DEBUG, Timer GET stateUpdate keys:" + Object.keys(stateUpdate.payload.state));
+                        //console.log("DEBUG, Timer GET tmpCommand keys:" + Object.keys(nodeContext.get('tmpCommand').payload.state));
+                        
+                        // if (Object.keys(stateUpdate.payload.state).toString() == Object.keys(nodeContext.get('tmpCommand').payload.state).toString() && stateUpdate.messageId != nodeContext.get('tmpCommand').messageId) {
+                        if (Object.keys(stateUpdate.payload.state).toString() == Object.keys(nodeContext.get('tmpCommand').payload.state).toString()) {
+                            console.log("DEBUG, Timer throttled/ deleted state update: " + keys[nodeContext.get('tmpKey')]);
+                            delete onGoingCommands[keys[nodeContext.get('tmpKey')]];
+                            nodeContext.set('tmpCommand',onGoingCommands[keys[key]]); 
+                            nodeContext.set('tmpKey',key);
+                        }
+                        else {
+                            //console.log("DEBUG, Timer No match of object keys");
+                            nodeContext.set('tmpCommand',onGoingCommands[keys[key]]);
+                            nodeContext.set('tmpKey',key);
+                        }
+                    }
+                    var diff = now - stateUpdate.timestamp;
+                    if (diff > 1000) {
+                        node.conf.updateState(stateUpdate.messageId, stateUpdate.endpointId, stateUpdate.payload);
+                        //console.log("DEBUG, Timer sent state update: " + keys[key]);
+                        delete onGoingCommands[keys[key]];
+                    }
+                }
+            }
+        }, 250); // 250 Millisecond Timer
 
+        // Store timer Id in node content 
+        nodeContext.set("timer",timer);
+        
         // Set State Node On Input Function
         node.on('input',function(msg){
             // State update could be for any state(s), validate the state message falls within expected params
@@ -356,34 +400,24 @@ module.exports = function(RED) {
             else if (msg.command == "SetTargetTemperature"){msg.payload={"state":{"thermostatSetPoint":msg.payload}}}
             else if (msg.command == "TurnOff" || msg.command == "TurnOn"){msg.payload={"state":{"power":msg.payload}}}
             else if (msg.command == "Unlock"){msg.payload={"state":{"lock":"UNLOCKED"}}}
-            //console.log("State msg.payload:" + JSON.stringify(msg.payload));
-            //console.log("msg.acknowledge:" + msg.acknowledge);
-            //console.log("msg:" + JSON.stringify(msg));
 
-            var lastPayload = nodeContext.get('lastPayload');
+            if (nodeContext.get('lastPayload') && msg.payload.hasOwnProperty('state')) {
+                //console.log("DEBUG, ON Message, lastpayload: " + JSON.stringify(nodeContext.get('lastPayload')));
+                //console.log("DEBUG, ON Message, msg.payload: " + JSON.stringify(msg.payload));
 
-            // Avoid duplicate state updates into Web API
-            if (lastPayload) {
-                if (JSON.stringify(lastPayload) == JSON.stringify(msg.payload)) {
+                // Duplicate Payload to last payload received, discard
+                if (JSON.stringify(nodeContext.get('lastPayload')) == JSON.stringify(msg.payload)) {
                     nodeContext.set('duplicatePayload', true);
-                    //console.log("msg.payload:" + JSON.stringify(msg.payload));
-                    //console.log("lastPayload:" + JSON.stringify(lastPayload));
-                    //console.log("INFO, Duplicate state payload:" + nodeContext.get('duplicatePayload'));
                 }
+                // Non-duplicate payload. send to Web API
                 else {
                     nodeContext.set('duplicatePayload', false);
                     nodeContext.set('lastPayload',msg.payload);
-                    //console.log("msg.payload:" + JSON.stringify(msg.payload));
-                    //console.log("lastPayload:" + JSON.stringify(lastPayload));
-                    //console.log("INFO, State payload is NOT duplicate, duplicatePayload:" + nodeContext.get('duplicatePayload'));
                 }
             } 
             else {
                 nodeContext.set('duplicatePayload', false);
                 nodeContext.set('lastPayload', msg.payload);
-                //console.log("lastPayload not set");
-                //console.log("msg.payload:" + JSON.stringify(msg.payload));
-                //console.log("INFO, State payload is NOT duplicate, duplicatePayload:" + nodeContext.get('duplicatePayload'));
             }
 
             // Set State Payload Handler
@@ -433,28 +467,36 @@ module.exports = function(RED) {
                 if (stateValid && msg.acknowledge == true) {
                     // Send messageId, deviceId, capability and payload to updateState
                     var messageId = uuid();
-                    node.conf.updateState(messageId, this.device, msg.payload);
+                    //node.conf.updateState(messageId, this.device, msg.payload);
+                    var command = {
+                        messageId: messageId,
+                        endpointId: this.device,
+                        payload: msg.payload,
+                        timestamp: Date.now()
+                    };
+                    onGoingCommands[messageId] = command;
+
                 }
                 else if (stateValid && msg.acknowledge != true) {
                     // Either auto-acknowledge is enabled on sender node, or validation has taken place
-                    console.log("Valid state update but msg.payload.acknowledge is false/ invalid")
+                    console.log("WARNING, AlexaHomeStyte valid state update but msg.payload.acknowledge is false/ invalid")
                 }
                 else {
                     // State update not valid, logic above will explain why
-                    console.log("State update is not valid")
+                    console.log("WARNING, AlexaHomeState state payload not valid")
                 }
             }
             // State missing
             else if (!msg.payload.hasOwnProperty('state')) { 
-                console.log("WARNING, Missing msg.payload.state")
+                console.log("WARNING, AlexaHomeState incoming message missing msg.payload.state")
             }
             // Acknowledge missing
             else if (!msg.hasOwnProperty('acknowledge')) { 
-                console.log("WARNING, Missing msg.acknowledge")
+                console.log("WARNING, AlexaHomeState incoming message missing msg.acknowledge")
             }
             // Duplicate State Update
-            else if (nodeContext.get('duplicatePayload')) { 
-                console.log("INFO, Discarded duplicate state payload")
+            else if (nodeContext.get('duplicatePayload') == true) { 
+                console.log("INFO, AlexaHomeState discarded duplicate state payload")
             }
         });
 
@@ -462,6 +504,7 @@ module.exports = function(RED) {
 
         node.on('close', function(done){
             node.conf.deregister(node, done);
+            clearInterval(nodeContext.get("timer")); // Close Interval Timer used node contexrt stored Id
         });
     }
     
