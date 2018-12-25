@@ -1,5 +1,5 @@
 {
-  "name": "nod-red-contrib-alexa-smart-home",
+  "name": "node-red-contrib-alexa-smart-home",
   "version": "0.4.1",
   "description": "Please see [Wiki](https://github.com/coldfire84/node-red-alexa-home-skill-v3-web/wiki) for service information.",
   "main": "index.js",
