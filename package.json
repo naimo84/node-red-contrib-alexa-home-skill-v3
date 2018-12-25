@@ -1,7 +1,7 @@
 {
-  "name": "alexa-smart-home-v3",
-  "version": "0.4.0",
-  "description": "",
+  "name": "nod-red-contrib-alexa-smart-home",
+  "version": "0.4.1",
+  "description": "Please see [Wiki](https://github.com/coldfire84/node-red-alexa-home-skill-v3-web/wiki) for service information.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -13,7 +13,7 @@
     "skill"
   ],
   "bugs": {
-    "url" : "https://gitlab.cb-net.co.uk/coldfire84/node-red-contrib-alexa-smart-home-v3/issues"
+    "url": "https://gitlab.cb-net.co.uk/coldfire84/node-red-contrib-alexa-smart-home-v3/issues"
   },
   "repository": {
     "type": "git",
