@@ -240,6 +240,11 @@ module.exports = function(RED) {
                     // Volume adjustment command
                     msg.payload = message.directive.payload.volumeSteps;
                     break;
+                case "ChangeChannel":
+                    // Change channel command
+                    if (message.directive.payload.channel.hasOwnProperty('number')) {msg.payload = message.directive.payload.channel.number}
+                    else if (message.directive.payload.channel.hasOwnProperty('callSign')) {msg.payload = message.directive.payload.channel.callSign}
+                    break;
                 case "SetMute":
                     // Mute command
                     if (message.directive.payload.mute == false) {msg.payload = "OFF"};
