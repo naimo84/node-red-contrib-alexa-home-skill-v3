@@ -241,9 +241,13 @@ module.exports = function(RED) {
                     msg.payload = message.directive.payload.volumeSteps;
                     break;
                 case "ChangeChannel":
-                    // Change channel command
-                    if (message.directive.payload.channel.hasOwnProperty('number')) {msg.payload = message.directive.payload.channel.number}
-                    else if (message.directive.payload.channel.hasOwnProperty('callSign')) {msg.payload = message.directive.payload.channel.callSign}
+                    if (typeof message.directive.payload.channel.number != 'undefined') {
+                        // Change channel command
+                        msg.payload = message.directive.payload.channel.number
+                    }
+                    else if (message.directive.payload.channelMetadata.hasOwnProperty('name')) {
+                        msg.payload = message.directive.payload.channelMetadata.name
+                    }
                     break;
                 case "SetMute":
                     // Mute command
