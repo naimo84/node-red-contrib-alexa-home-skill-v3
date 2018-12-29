@@ -488,7 +488,7 @@ module.exports = function(RED) {
                 }
                 else if (stateValid && msg.acknowledge != true) {
                     // Either auto-acknowledge is enabled on sender node, or validation has taken place
-                    console.log("WARNING, AlexaHomeStyte valid state update but msg.payload.acknowledge is false/ invalid")
+                    console.log("WARNING, AlexaHomeState valid state update but msg.payload.acknowledge is false/ invalid")
                 }
                 else {
                     // State update not valid, logic above will explain why
