@@ -168,6 +168,7 @@ module.exports = function(RED) {
                     "input": payload.state.input,
                     "lock": payload.state.lock,
                     "playback": payload.state.playback,
+                    "temperature": payload.state.temperature,
                     "thermostatSetPoint" : payload.state.thermostatSetPoint
                     }
                 }
@@ -440,6 +441,7 @@ module.exports = function(RED) {
                 //     "input": payload.state.input,
                 //     "lock": payload.state.lock,
                 //     "playback": payload.state.playback,
+                //     "temperature": payload.state.temperature,
                 //     "thermostatMode": payload.state.thermostatMode,
                 //     "thermostatSetPoint" : payload.state.thermostatSetPoint
 
@@ -468,6 +470,10 @@ module.exports = function(RED) {
                 // Power state, expect state to be string, either ON or OFF
                 if (msg.payload.state.hasOwnProperty('power')) {
                     if (typeof msg.payload.state.power == 'string' && (msg.payload.state.power == 'ON' || msg.payload.state.power == 'OFF')) {stateValid = true};
+                }
+                // Temperature sensor state, expect state to be a number
+                if (msg.payload.state.hasOwnProperty('temperature')) {
+                    if (typeof msg.payload.state.temperature == 'number') {stateValid = true};
                 }
                 // ThermostatSetPoint state, expect state to be a number
                 if (msg.payload.state.hasOwnProperty('thermostatSetPoint')) {
