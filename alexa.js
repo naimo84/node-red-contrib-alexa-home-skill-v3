@@ -227,13 +227,18 @@ module.exports = function(RED) {
 
             // Needs expanding based on additional applications
             switch(message.directive.header.name){
-                case "TurnOn":
-                    // Power-on command
-                    msg.payload = "ON";
+                case "AdjustBrightness":
+                    // Brightness % command
+                    msg.payload = message.directive.payload.brightnessDelta;
                     break;
-                case "TurnOff":
-                    // Power-off command
-                    msg.payload = "OFF";
+                case "AdjustPercentage":
+                    // Percentage Controller command
+                    msg.payload = message.directive.payload.percentageDelta;               
+                    break;
+                case "AdjustTargetTemperature":
+                    // Thermostat command
+                    msg.payload = message.directive.payload.targetSetpointDelta.value;
+                    msg.temperatureScale = message.directive.payload.targetSetpointDelta.scale;
                     break;
                 case "AdjustVolume":
                     // Volume adjustment command
@@ -248,10 +253,9 @@ module.exports = function(RED) {
                         msg.payload = message.directive.payload.channelMetadata.name
                     }
                     break;
-                case "SetMute":
-                    // Mute command
-                    if (message.directive.payload.mute == false) {msg.payload = "OFF"};
-                    if (message.directive.payload.mute == true) {msg.payload = "ON"};
+                case "Lock":
+                    // Lock command
+                    msg.payload = "Lock";               
                     break;
                 case "SelectInput":
                     // Select input command
@@ -261,10 +265,6 @@ module.exports = function(RED) {
                     // Brightness % command
                     msg.payload = message.directive.payload.brightness;
                     break;
-                case "AdjustBrightness":
-                    // Brightness % command
-                    msg.payload = message.directive.payload.brightnessDelta;
-                    break;
                 case "SetColor":
                     // Color command
                     msg.payload = message.directive.payload.color;               
@@ -273,15 +273,19 @@ module.exports = function(RED) {
                     // Color command
                     msg.payload = message.directive.payload.colorTemperatureInKelvin;               
                     break;
+                case "SetMute":
+                    // Mute command
+                    if (message.directive.payload.mute == false) {msg.payload = "OFF"};
+                    if (message.directive.payload.mute == true) {msg.payload = "ON"};
+                    break;
+                case "SetPercentage":
+                    // Percentage Controller  command
+                    msg.payload = message.directive.payload.percentage;               
+                    break;
                 case "SetTargetTemperature":
                     // Thermostat command
                     msg.payload = message.directive.payload.targetSetpoint.value;
                     msg.temperatureScale = message.directive.payload.targetSetpoint.scale;
-                    break;
-                case "AdjustTargetTemperature":
-                    // Thermostat command
-                    msg.payload = message.directive.payload.targetSetpointDelta.value;
-                    msg.temperatureScale = message.directive.payload.targetSetpointDelta.scale;
                     break;
                 case "SetThermostatMode":
                     // Thermostat command
@@ -291,9 +295,13 @@ module.exports = function(RED) {
                     // Speaker command
                     msg.payload = message.directive.payload.volume;               
                     break;
-                case "Lock":
-                    // Lock command
-                    msg.payload = "Lock";               
+                case "TurnOn":
+                    // Power-on command
+                    msg.payload = "ON";
+                    break;
+                case "TurnOff":
+                    // Power-off command
+                    msg.payload = "OFF";
                     break;
                 case "Unlock":
                     // Unlock command
