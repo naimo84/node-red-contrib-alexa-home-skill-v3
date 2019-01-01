@@ -163,13 +163,14 @@ module.exports = function(RED) {
                     "input": payload.state.input,
                     "lock": payload.state.lock,
                     "playback": payload.state.playback,
+                    "percentage": payload.state.percentage,
+                    "percentageDelta": payload.state.percentageDelta,
                     "temperature": payload.state.temperature,
                     "targetSetpointDelta": payload.state.targetSetpointDelta,
                     "thermostatSetPoint" : payload.state.thermostatSetPoint
                     }
                 }
             };
-
 
             console.log("State update: " + JSON.stringify(response));
             var topic = 'state/' + node.username + '/' + endpointId;
@@ -223,7 +224,7 @@ module.exports = function(RED) {
 
             var respond = true;
 
-            console.log("Message: " + message)
+            console.log("Message: " + JSON.stringify(message));
 
             // Needs expanding based on additional applications
             switch(message.directive.header.name){
@@ -422,6 +423,8 @@ module.exports = function(RED) {
             else if (msg.command == "SetColor"){msg.payload={"state":{"colorHue": msg.payload.hue,"colorSaturation":msg.payload.saturation,"colorBrightness":msg.payload.brightness}}}
             else if (msg.command == "SelectInput"){msg.payload={"state":{"input":msg.payload}}}
             else if (msg.command == "AdjustTargetTemperature"){msg.payload={"state":{"targetSetpointDelta":msg.payload}}}
+            else if (msg.command == "SetPercentage"){msg.payload={"state":{"percentage":msg.payload}}}
+            else if (msg.command == "AdjustPercentage"){msg.payload={"state":{"percentageDelta":msg.payload}}}
             else if (msg.command == "SetTargetTemperature"){msg.payload={"state":{"thermostatSetPoint":msg.payload}}}
             else if (msg.command == "SetThermostatMode"){msg.payload={"state":{"thermostatMode":msg.payload}}}
             else if (msg.command == "TurnOff" || msg.command == "TurnOn"){msg.payload={"state":{"power":msg.payload}}}
@@ -458,6 +461,8 @@ module.exports = function(RED) {
                 //     "input": payload.state.input,
                 //     "lock": payload.state.lock,
                 //     "playback": payload.state.playback,
+                //     "percentage": payload.state.percentage,
+                //     "percentageDelta": payload.state.percentageDelta,
                 //     "temperature": payload.state.temperature,
                 //     "targetSetpointDelta": payload.state.targetSetpointDelta,
                 //     "thermostatMode": payload.state.thermostatMode,
@@ -484,6 +489,14 @@ module.exports = function(RED) {
                 // Lock state, expect string, either LOCKED or UNLOCKED
                 if (msg.payload.state.hasOwnProperty('lock')) {
                     if (typeof msg.payload.state.lock == 'string' && (msg.payload.state.lock == "LOCKED" || msg.payload.state.lock == "UNLOCKED")) {stateValid = true};
+                }
+                // Percentage state, expect state top be number between 0 and 100
+                if (msg.payload.state.hasOwnProperty('percentage')) {
+                    if (typeof msg.payload.state.percentage == 'number' && (msg.payload.state.percentage >= 0 || msg.payload.state.percentage <= 100)) {stateValid = true};
+                }
+                // PercentageDelta state, expect state top be number between 0 and 100
+                if (msg.payload.state.hasOwnProperty('percentageDelta')) {
+                    if (typeof msg.payload.state.percentageDelta == 'number' && (msg.payload.state.percentageDelta >= -100 || msg.payload.state.percentageDelta <= 100)) {stateValid = true};
                 }
                 // Power state, expect state to be string, either ON or OFF
                 if (msg.payload.state.hasOwnProperty('power')) {
