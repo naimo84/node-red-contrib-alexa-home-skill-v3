@@ -169,6 +169,7 @@ module.exports = function(RED) {
                     "lock": payload.state.lock,
                     "playback": payload.state.playback,
                     "temperature": payload.state.temperature,
+                    "targetSetpointDelta": payload.state.targetSetpointDelta,
                     "thermostatSetPoint" : payload.state.thermostatSetPoint
                     }
                 }
@@ -226,6 +227,8 @@ module.exports = function(RED) {
             }
 
             var respond = true;
+            
+            console.log("Message: " + message)
 
             // Needs expanding based on additional applications
             switch(message.directive.header.name){
@@ -242,8 +245,8 @@ module.exports = function(RED) {
                     msg.payload = message.directive.payload.volumeSteps;
                     break;
                 case "ChangeChannel":
+                    // Change channel command
                     if (typeof message.directive.payload.channel.number != 'undefined') {
-                        // Change channel command
                         msg.payload = message.directive.payload.channel.number
                     }
                     else if (message.directive.payload.channelMetadata.hasOwnProperty('name')) {
@@ -258,11 +261,6 @@ module.exports = function(RED) {
                 case "SelectInput":
                     // Select input command
                     msg.payload = message.directive.payload.input;
-                    break;
-                case "SetTargetTemperature":
-                    // Target temperature command
-                    msg.payload = message.directive.payload.targetSetpoint.value;
-                    msg.temperatureScale = message.directive.payload.targetSetpoint.scale;
                     break;
                 case "SetBrightness":
                     // Brightness % command
@@ -280,20 +278,29 @@ module.exports = function(RED) {
                     // Color command
                     msg.payload = message.directive.payload.colorTemperatureInKelvin;               
                     break;
+                case "SetTargetTemperature":
+                    // Thermostat command
+                    msg.payload = message.directive.payload.targetSetpoint.value;
+                    msg.temperatureScale = message.directive.payload.targetSetpoint.scale;
+                    break;
+                case "AdjustTargetTemperature":
+                    // Thermostat command
+                    msg.payload = message.directive.payload.targetSetpointDelta.value;
+                    msg.temperatureScale = message.directive.payload.targetSetpointDelta.scale;
+                    break;
                 case "SetThermostatMode":
-                    // Color command
+                    // Thermostat command
                     msg.payload = message.directive.payload.thermostatMode.value;               
                     break;
                 case "Lock":
-                    // Color command
+                    // Lock command
                     msg.payload = "Lock";               
                     break;
                 case "Unlock":
-                    // Color command
+                    // Unlock command
                     msg.payload = "Unlock";               
                     break;
             }
-            
             if (node.acknowledge) {
                 msg.acknowledge = {};
                 msg.acknowledge = true;
@@ -407,7 +414,9 @@ module.exports = function(RED) {
             else if (msg.command == "SetColorTemperature"){msg.payload = {"state":{"colorTemperature":msg.payload}}}
             else if (msg.command == "SetColor"){msg.payload={"state":{"colorHue": msg.payload.hue,"colorSaturation":msg.payload.saturation,"brightness":msg.payload.brightness}}}
             else if (msg.command == "SelectInput"){msg.payload={"state":{"input":msg.payload}}}
+            else if (msg.command == "AdjustTargetTemperature"){msg.payload={"state":{"targetSetpointDelta":msg.payload}}}
             else if (msg.command == "SetTargetTemperature"){msg.payload={"state":{"thermostatSetPoint":msg.payload}}}
+            else if (msg.command == "SetThermostatMode"){msg.payload={"state":{"thermostatMode":msg.payload}}}
             else if (msg.command == "TurnOff" || msg.command == "TurnOn"){msg.payload={"state":{"power":msg.payload}}}
             else if (msg.command == "Unlock"){msg.payload={"state":{"lock":"UNLOCKED"}}}
 
@@ -442,6 +451,7 @@ module.exports = function(RED) {
                 //     "lock": payload.state.lock,
                 //     "playback": payload.state.playback,
                 //     "temperature": payload.state.temperature,
+                //     "targetSetpointDelta": payload.state.targetSetpointDelta,
                 //     "thermostatMode": payload.state.thermostatMode,
                 //     "thermostatSetPoint" : payload.state.thermostatSetPoint
 
@@ -474,6 +484,14 @@ module.exports = function(RED) {
                 // Temperature sensor state, expect state to be a number
                 if (msg.payload.state.hasOwnProperty('temperature')) {
                     if (typeof msg.payload.state.temperature == 'number') {stateValid = true};
+                }
+                // ThermostatMode state, expect state to be a number
+                if (msg.payload.state.hasOwnProperty('thermostatMode')) {
+                    if (typeof msg.payload.state.thermostatMode == 'string') {stateValid = true};
+                }
+                // TargetSetpointDelta state, expect state to be a number
+                if (msg.payload.state.hasOwnProperty('targetSetpointDelta')) {
+                    if (typeof msg.payload.state.targetSetpointDelta == 'number') {stateValid = true};
                 }
                 // ThermostatSetPoint state, expect state to be a number
                 if (msg.payload.state.hasOwnProperty('thermostatSetPoint')) {
