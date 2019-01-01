@@ -19,12 +19,6 @@ module.exports = function(RED) {
     var request = require('request');
     var mqtt = require('mqtt');
     var bodyParser = require('body-parser');
-
-    // Change these to match your hosting environment
-    //var webHost = "nr-alexav3.cb-net.co.uk";
-    //var mqttHost = "mq-alexav3.cb-net.co.uk";
-    //var devicesURL = "https://" + webHost + "/api/v1/devices";
-
     var devices = {};
 
     // Config Node
@@ -162,6 +156,7 @@ module.exports = function(RED) {
                 state: {
                     "power": payload.state.power,
                     "brightness": payload.state.brightness,
+                    "colorBrightness": payload.state.colorBrightness,
                     "colorHue": payload.state.colorHue,
                     "colorSaturation": payload.state.colorSaturation,
                     "colorTemperature": payload.state.colorTemperature,
@@ -227,7 +222,7 @@ module.exports = function(RED) {
             }
 
             var respond = true;
-            
+
             console.log("Message: " + message)
 
             // Needs expanding based on additional applications
@@ -291,6 +286,10 @@ module.exports = function(RED) {
                 case "SetThermostatMode":
                     // Thermostat command
                     msg.payload = message.directive.payload.thermostatMode.value;               
+                    break;
+                case "SetVolume":
+                    // Speaker command
+                    msg.payload = message.directive.payload.volume;               
                     break;
                 case "Lock":
                     // Lock command
@@ -412,7 +411,7 @@ module.exports = function(RED) {
             if (msg.command == "Lock"){msg.payload = {"state":{"lock":"LOCKED"}}}
             else if (msg.command == "SetBrightness"){msg.payload = {"state":{"brightness":msg.payload}}}
             else if (msg.command == "SetColorTemperature"){msg.payload = {"state":{"colorTemperature":msg.payload}}}
-            else if (msg.command == "SetColor"){msg.payload={"state":{"colorHue": msg.payload.hue,"colorSaturation":msg.payload.saturation,"brightness":msg.payload.brightness}}}
+            else if (msg.command == "SetColor"){msg.payload={"state":{"colorHue": msg.payload.hue,"colorSaturation":msg.payload.saturation,"colorBrightness":msg.payload.brightness}}}
             else if (msg.command == "SelectInput"){msg.payload={"state":{"input":msg.payload}}}
             else if (msg.command == "AdjustTargetTemperature"){msg.payload={"state":{"targetSetpointDelta":msg.payload}}}
             else if (msg.command == "SetTargetTemperature"){msg.payload={"state":{"thermostatSetPoint":msg.payload}}}
@@ -444,6 +443,7 @@ module.exports = function(RED) {
                 // Perform validation of device state payload, expects payload.state to contain as below
                 //     "power": payload.state.power,
                 //     "brightness": payload.state.brightness,
+                //     "colorBrightness": payload.state.colorBrightness,
                 //     "colorHue": payload.state.colorHue,
                 //     "colorSaturation": payload.state.colorSaturation,
                 //     "colorTemperature": payload.state.colorTemperature,
@@ -460,10 +460,10 @@ module.exports = function(RED) {
                     if (typeof msg.payload.state.brightness == 'number' && msg.payload.state.brightness >= 0 && msg.payload.state.brightness <= 100) {stateValid = true};
                 }
                 // Color state, expect state to include hue, saturation and brightness, in range of 0-360 for hue and 0-1 for saturation and brightness
-                if (msg.payload.state.hasOwnProperty('hue') && msg.payload.state.hasOwnProperty('saturation') && msg.payload.state.hasOwnProperty('brightness')) {
-                    if ((msg.payload.state.hue >= 0 && msg.payload.state.hue <= 360)
-                        && (msg.payload.state.saturation >= 0 && msg.payload.state.saturation <= 1)
-                        && (msg.payload.state.brightness >= 0 && msg.payload.state.brightness <= 1)) {stateValid = true};
+                if (msg.payload.state.hasOwnProperty('colorHue') && msg.payload.state.hasOwnProperty('colorSaturation') && msg.payload.state.hasOwnProperty('colorBrightness')) {
+                    if ((msg.payload.state.colorHue >= 0 && msg.payload.state.colorHue <= 360)
+                        && (msg.payload.state.colorSaturation >= 0 && msg.payload.state.colorSaturation <= 1)
+                        && (msg.payload.state.colorBrightness >= 0 && msg.payload.state.colorBrightness <= 1)) {stateValid = true};
                 }
                 // Color Temperature, expect state to include colorTemperatureInKelvin, in range of 0-10000
                 if (msg.payload.state.hasOwnProperty('colorTemperature')) {
