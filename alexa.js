@@ -418,14 +418,15 @@ module.exports = function(RED) {
             // State update could be for any state(s), validate the state message falls within expected params
             var stateValid = false;
             // Handle AlexaHome output
-            if (msg.command == "Lock"){msg.payload = {"state":{"lock":"LOCKED"}}}
-            else if (msg.command == "SetBrightness"){msg.payload = {"state":{"brightness":msg.payload}}}
-            else if (msg.command == "SetColorTemperature"){msg.payload = {"state":{"colorTemperature":msg.payload}}}
-            else if (msg.command == "SetColor"){msg.payload={"state":{"colorHue": msg.payload.hue,"colorSaturation":msg.payload.saturation,"colorBrightness":msg.payload.brightness}}}
-            else if (msg.command == "SelectInput"){msg.payload={"state":{"input":msg.payload}}}
+            if (msg.command == "AdjustPercentage"){msg.payload={"state":{"percentageDelta":msg.payload}}}
             else if (msg.command == "AdjustTargetTemperature"){msg.payload={"state":{"targetSetpointDelta":msg.payload}}}
+            else if (msg.command == "AdjustVolume"){msg.payload={"state":{"volumeDelta":msg.payload}}}
+            else if (msg.command == "Lock"){msg.payload = {"state":{"lock":"LOCKED"}}}
+            else if (msg.command == "SetBrightness"){msg.payload = {"state":{"brightness":msg.payload}}}
+            else if (msg.command == "SetColor"){msg.payload={"state":{"colorHue": msg.payload.hue,"colorSaturation":msg.payload.saturation,"colorBrightness":msg.payload.brightness}}}
+            else if (msg.command == "SetColorTemperature"){msg.payload = {"state":{"colorTemperature":msg.payload}}}
+            else if (msg.command == "SelectInput"){msg.payload={"state":{"input":msg.payload}}}
             else if (msg.command == "SetPercentage"){msg.payload={"state":{"percentage":msg.payload}}}
-            else if (msg.command == "AdjustPercentage"){msg.payload={"state":{"percentageDelta":msg.payload}}}
             else if (msg.command == "SetTargetTemperature"){msg.payload={"state":{"thermostatSetPoint":msg.payload}}}
             else if (msg.command == "SetThermostatMode"){msg.payload={"state":{"thermostatMode":msg.payload}}}
             else if (msg.command == "TurnOff" || msg.command == "TurnOn"){msg.payload={"state":{"power":msg.payload}}}
@@ -435,8 +436,12 @@ module.exports = function(RED) {
                 //console.log("DEBUG, ON Message, lastpayload: " + JSON.stringify(nodeContext.get('lastPayload')));
                 //console.log("DEBUG, ON Message, msg.payload: " + JSON.stringify(msg.payload));
 
-                // Duplicate Payload to last payload received, discard
-                if (JSON.stringify(nodeContext.get('lastPayload')) == JSON.stringify(msg.payload)) {
+                // Duplicate Payload to last payload received, discard unless an adjustment payload which is likely to be duplicate
+                if (JSON.stringify(nodeContext.get('lastPayload')) == JSON.stringify(msg.payload)
+                 && !(msg.payload.state.hasOwnProperty('percentageDelta') 
+                    || msg.payload.state.hasOwnProperty('targetSetpointDelta') 
+                    || msg.payload.state.hasOwnProperty('volumeDelta'))) {
+
                     nodeContext.set('duplicatePayload', true);
                 }
                 // Non-duplicate payload. send to Web API
