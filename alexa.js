@@ -154,7 +154,6 @@ module.exports = function(RED) {
             messageId: messageId,
             payload: {
                 state: {
-                    "power": payload.state.power,
                     "brightness": payload.state.brightness,
                     "colorBrightness": payload.state.colorBrightness,
                     "colorHue": payload.state.colorHue,
@@ -162,12 +161,14 @@ module.exports = function(RED) {
                     "colorTemperature": payload.state.colorTemperature,
                     "input": payload.state.input,
                     "lock": payload.state.lock,
-                    "playback": payload.state.playback,
                     "percentage": payload.state.percentage,
                     "percentageDelta": payload.state.percentageDelta,
+                    "playback": payload.state.playback,
+                    "power": payload.state.power,
                     "temperature": payload.state.temperature,
-                    "targetSetpointDelta": payload.state.targetSetpointDelta,
-                    "thermostatSetPoint" : payload.state.thermostatSetPoint
+                    "thermostatMode": payload.state.thermostatMode,
+                    "thermostatSetPoint" : payload.state.thermostatSetPoint,
+                    "targetSetpointDelta": payload.state.targetSetpointDelta
                     }
                 }
             };

@@ -234,16 +234,21 @@ msg {
     acknowledge: true,
     payload {
         state { 
-            "power": ON/ OFF,
             "brightness": 0-100,
+            "colorbrightness": 0-1,
             "colorHue": 0-360,
             "colorSaturation": 0-1,
             "colorTemperature": 0-10000, 
             "input": string,
-            "lock": LOCKED/ UNLOCKED,
+            "lock": "LOCKED" || "UNLOCKED",
+            "percentage": number,
+            "percentageDelta": number,
             "playback": playback,
-            "thermostatMode": HEAT/ COOL,
-            "thermostatSetPoint" : temp in celsius or farenheit
+            "power": "ON" || "OFF",
+            "temperature": number,
+            "thermostatMode": "HEAT" || "COOL",
+            "thermostatSetPoint" : number,
+            "targetSetpointDelta": number
         }
     }
 }
