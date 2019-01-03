@@ -242,9 +242,11 @@ module.exports = function(RED) {
                     msg.payload = message.directive.payload.targetSetpointDelta.value;
                     msg.temperatureScale = message.directive.payload.targetSetpointDelta.scale;
                     break;
-                case "AdjustVolume":
-                    // Volume adjustment command
-                    msg.payload = message.directive.payload.volumeSteps;
+                    case "AdjustVolume":
+                    // Alexa.StepSpeaker
+                    if (message.directive.payload.hasOwnProperty('volumeSteps')){msg.payload = message.directive.payload.volumeSteps}
+                    // Alexa.Speaker
+                    else if (message.directive.payload.hasOwnProperty('volume')){msg.payload = message.directive.payload.volume}
                     break;
                 case "ChangeChannel":
                     // Change channel command
