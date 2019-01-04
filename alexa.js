@@ -431,6 +431,7 @@ module.exports = function(RED) {
             else if (msg.command == "SetPercentage"){msg.payload={"state":{"percentage":msg.payload}}}
             else if (msg.command == "SetTargetTemperature"){msg.payload={"state":{"thermostatSetPoint":msg.payload}}}
             else if (msg.command == "SetThermostatMode"){msg.payload={"state":{"thermostatMode":msg.payload}}}
+            else if (msg.command == "SetVolume"){msg.payload={"state":{"volume":msg.payload}}}
             else if (msg.command == "TurnOff" || msg.command == "TurnOn"){msg.payload={"state":{"power":msg.payload}}}
             else if (msg.command == "Unlock"){msg.payload={"state":{"lock":"UNLOCKED"}}}
 
@@ -475,6 +476,8 @@ module.exports = function(RED) {
                 //     "targetSetpointDelta": payload.state.targetSetpointDelta,
                 //     "thermostatMode": payload.state.thermostatMode,
                 //     "thermostatSetPoint" : payload.state.thermostatSetPoint
+                //     "volume" : payload.state.thermostatSetPoint
+                //     "volumeDelta" : payload.state.thermostatSetPoint
 
                 // Brightness state, expect state to be a number in range of 0-100
                 if (msg.payload.state.hasOwnProperty('brightness')) {
@@ -525,6 +528,14 @@ module.exports = function(RED) {
                 // ThermostatSetPoint state, expect state to be a number
                 if (msg.payload.state.hasOwnProperty('thermostatSetPoint')) {
                     if (typeof msg.payload.state.thermostatSetPoint == 'number') {stateValid = true};
+                }
+                // Volume state, expect state to be a number
+                if (msg.payload.state.hasOwnProperty('volume')) {
+                    if (typeof msg.payload.state.volume == 'number') {stateValid = true};
+                }
+                // VolumeDelta state, expect state to be a number
+                if (msg.payload.state.hasOwnProperty('volumeDelta')) {
+                    if (typeof msg.payload.state.volumeDelta == 'number') {stateValid = true};
                 }
                 if (stateValid && msg.acknowledge == true) {
                     // Send messageId, deviceId, capability and payload to updateState
