@@ -168,7 +168,9 @@ module.exports = function(RED) {
                     "temperature": payload.state.temperature,
                     "thermostatMode": payload.state.thermostatMode,
                     "thermostatSetPoint" : payload.state.thermostatSetPoint,
-                    "targetSetpointDelta": payload.state.targetSetpointDelta
+                    "targetSetpointDelta": payload.state.targetSetpointDelta,
+                    "volume": payload.state.volume,
+                    "volumeDelta": payload.state.volumeDelta,
                     }
                 }
             };
