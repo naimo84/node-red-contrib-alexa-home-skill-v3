@@ -67,11 +67,22 @@ module.exports = function(RED) {
                 node.client.subscribe("command/" + node.username + "/#");
                 node.client.on('message', function(topic, message){
                     var msg = JSON.parse(message.toString());
-                    //console.log("msg", msg)
-                    var endpointId = msg.directive.endpoint.endpointId;
+                    
+                    // Added Alexa message handler
+                    if (msg.hasOwnProperty('directive')) {
+                        console.log("info", "Received Alexa MQTT message");
+                        var endpointId = (msg.directive.endpoint.endpointId);
+                    }
+                    // Google Home message handler
+                    if (msg.hasOwnProperty('execution')) {
+                        console.log("info", "Received Google Home MQTT message");
+                        var endpointId = (msg.id);
+                    }
+                    
                     for (var id in node.users) {
                         if (node.users.hasOwnProperty(id)){
                             if (node.users[id].device === endpointId && node.users[id].type == "alexa-smart-home-v3") {
+                                console.log("info", "Sending command message");
                                 node.users[id].command(msg);
                             }
                         }
@@ -215,105 +226,152 @@ module.exports = function(RED) {
         // Command Node Command Function
         node.command = function (message){
             //console.log("message", message)
-            var msg ={
-                topic: node.topic || "",
-                name: node.name,
-                _messageId: message.directive.header.messageId,
-                _endpointId: message.directive.endpoint.endpointId,
-                _confId: node.confId,
-                command: message.directive.header.name,
-                extraInfo: message.directive.endpoint.cookie
+
+            var messageFormat;
+
+            // Alexa-format message handler
+            if (message.hasOwnProperty('directive')) {
+                console.log("Alexa message", message)
+                messageFormat = "Alexa";
+                var msg ={
+                    topic: node.topic || "",
+                    name: node.name,
+                    _messageId: message.directive.header.messageId,
+                    _endpointId: message.directive.endpoint.endpointId,
+                    _confId: node.confId,
+                    command: message.directive.header.name,
+                    extraInfo: message.directive.endpoint.cookie
+                }
+            }
+
+            // Google-Home format message handler
+            else if (message.hasOwnProperty('execution')) {
+                console.log("Google Home message", message)
+                messageFormat = "Google Home";
+                var msg = {
+                    topic: node.topic || "",
+                    name: node.name,
+                    _messageId: message.requestId,
+                    _endpointId: message.execution.devices[0].id,
+                    _confId: node.confId,
+                    command: message.execution.execution[0].command,
+                    params: message.execution.execution[0].params
+                }
             }
 
             var respond = true;
+            var messageId;
 
             console.log("Message: " + JSON.stringify(message));
 
-            // Needs expanding based on additional applications
-            switch(message.directive.header.name){
-                case "AdjustBrightness":
-                    // Brightness % command
-                    msg.payload = message.directive.payload.brightnessDelta;
-                    break;
-                case "AdjustPercentage":
-                    // Percentage Controller command
-                    msg.payload = message.directive.payload.percentageDelta;               
-                    break;
-                case "AdjustTargetTemperature":
-                    // Thermostat command
-                    msg.payload = message.directive.payload.targetSetpointDelta.value;
-                    msg.temperatureScale = message.directive.payload.targetSetpointDelta.scale;
-                    break;
-                    case "AdjustVolume":
-                    // Alexa.StepSpeaker
-                    if (message.directive.payload.hasOwnProperty('volumeSteps')){msg.payload = message.directive.payload.volumeSteps}
-                    // Alexa.Speaker
-                    else if (message.directive.payload.hasOwnProperty('volume')){msg.payload = message.directive.payload.volume}
-                    break;
-                case "ChangeChannel":
-                    // Change channel command
-                    if (typeof message.directive.payload.channel.number != 'undefined') {
-                        msg.payload = message.directive.payload.channel.number
-                    }
-                    else if (message.directive.payload.channelMetadata.hasOwnProperty('name')) {
-                        msg.payload = message.directive.payload.channelMetadata.name
-                    }
-                    break;
-                case "Lock":
-                    // Lock command
-                    msg.payload = "Lock";               
-                    break;
-                case "SelectInput":
-                    // Select input command
-                    msg.payload = message.directive.payload.input;
-                    break;
-                case "SetBrightness":
-                    // Brightness % command
-                    msg.payload = message.directive.payload.brightness;
-                    break;
-                case "SetColor":
-                    // Color command
-                    msg.payload = message.directive.payload.color;               
-                    break;
-                case "SetColorTemperature":
-                    // Color command
-                    msg.payload = message.directive.payload.colorTemperatureInKelvin;               
-                    break;
-                case "SetMute":
-                    // Mute command
-                    if (message.directive.payload.mute == false) {msg.payload = "OFF"};
-                    if (message.directive.payload.mute == true) {msg.payload = "ON"};
-                    break;
-                case "SetPercentage":
-                    // Percentage Controller  command
-                    msg.payload = message.directive.payload.percentage;               
-                    break;
-                case "SetTargetTemperature":
-                    // Thermostat command
-                    msg.payload = message.directive.payload.targetSetpoint.value;
-                    msg.temperatureScale = message.directive.payload.targetSetpoint.scale;
-                    break;
-                case "SetThermostatMode":
-                    // Thermostat command
-                    msg.payload = message.directive.payload.thermostatMode.value;               
-                    break;
-                case "SetVolume":
-                    // Speaker command
-                    msg.payload = message.directive.payload.volume;               
-                    break;
-                case "TurnOn":
-                    // Power-on command
-                    msg.payload = "ON";
-                    break;
-                case "TurnOff":
-                    // Power-off command
-                    msg.payload = "OFF";
-                    break;
-                case "Unlock":
-                    // Unlock command
-                    msg.payload = "Unlock";               
-                    break;
+            // Alexa Message Handler
+            if (messageFormat == "Alexa") {
+                if (message.directive.header.hasOwnProperty('messageId')){messageId = message.directive.header.messageId};               
+                switch(message.directive.header.name){
+                    case "AdjustBrightness":
+                        // Brightness % command
+                        msg.payload = message.directive.payload.brightnessDelta;
+                        break;
+                    case "AdjustPercentage":
+                        // Percentage Controller command
+                        msg.payload = message.directive.payload.percentageDelta;               
+                        break;
+                    case "AdjustTargetTemperature":
+                        // Thermostat command
+                        msg.payload = message.directive.payload.targetSetpointDelta.value;
+                        msg.temperatureScale = message.directive.payload.targetSetpointDelta.scale;
+                        break;
+                        case "AdjustVolume":
+                        // Alexa.StepSpeaker
+                        if (message.directive.payload.hasOwnProperty('volumeSteps')){msg.payload = message.directive.payload.volumeSteps}
+                        // Alexa.Speaker
+                        else if (message.directive.payload.hasOwnProperty('volume')){msg.payload = message.directive.payload.volume}
+                        break;
+                    case "ChangeChannel":
+                        // Change channel command
+                        if (typeof message.directive.payload.channel.number != 'undefined') {
+                            msg.payload = message.directive.payload.channel.number
+                        }
+                        else if (message.directive.payload.channelMetadata.hasOwnProperty('name')) {
+                            msg.payload = message.directive.payload.channelMetadata.name
+                        }
+                        break;
+                    case "Lock":
+                        // Lock command
+                        msg.payload = "Lock";               
+                        break;
+                    case "SelectInput":
+                        // Select input command
+                        msg.payload = message.directive.payload.input;
+                        break;
+                    case "SetBrightness":
+                        // Brightness % command
+                        msg.payload = message.directive.payload.brightness;
+                        break;
+                    case "SetColor":
+                        // Color command
+                        msg.payload = message.directive.payload.color;               
+                        break;
+                    case "SetColorTemperature":
+                        // Color command
+                        msg.payload = message.directive.payload.colorTemperatureInKelvin;               
+                        break;
+                    case "SetMute":
+                        // Mute command
+                        if (message.directive.payload.mute == false) {msg.payload = "OFF"};
+                        if (message.directive.payload.mute == true) {msg.payload = "ON"};
+                        break;
+                    case "SetPercentage":
+                        // Percentage Controller  command
+                        msg.payload = message.directive.payload.percentage;               
+                        break;
+                    case "SetTargetTemperature":
+                        // Thermostat command
+                        msg.payload = message.directive.payload.targetSetpoint.value;
+                        msg.temperatureScale = message.directive.payload.targetSetpoint.scale;
+                        break;
+                    case "SetThermostatMode":
+                        // Thermostat command
+                        msg.payload = message.directive.payload.thermostatMode.value;               
+                        break;
+                    case "SetVolume":
+                        // Speaker command
+                        msg.payload = message.directive.payload.volume;               
+                        break;
+                    case "TurnOn":
+                        // Power-on command
+                        msg.payload = "ON";
+                        break;
+                    case "TurnOff":
+                        // Power-off command
+                        msg.payload = "OFF";
+                        break;
+                    case "Unlock":
+                        // Unlock command
+                        msg.payload = "Unlock";               
+                        break;
+                }
             }
+
+            // Google Home Message Handler
+            else if (messageFormat == "Google Home") {
+                if (message.hasOwnProperty('requestId')){messageId = message.requestId};
+                switch (msg.command) {
+                    case "action.devices.commands.OnOff" :
+                        if (msg.params.on == true) {
+                            msg.command = "TurnOn"
+                            msg.payload = "ON"
+                        }
+                        else if (msg.params.on == false) {
+                            msg.command = "TurnOff"
+                            msg.payload = "OFF"
+                        }
+                        break;
+
+                }
+
+            }
+
             if (node.acknowledge) {
                 msg.acknowledge = {};
                 msg.acknowledge = true;
@@ -325,8 +383,8 @@ module.exports = function(RED) {
 
             node.send(msg);
 
-            if (node.acknowledge && respond) {
-                node.conf.acknowledge(message.directive.header.messageId, node.device, true);
+            if (node.acknowledge && respond && messageId) {
+                node.conf.acknowledge(messageId, node.device, true);
             }
         }
 
