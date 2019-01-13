@@ -11,7 +11,8 @@
     "alexa",
     "echo",
     "skill",
-    "google assistant"
+    "google-home",
+    "google"
   ],
   "bugs": {
     "url": "https://gitlab.cb-net.co.uk/coldfire84/node-red-contrib-alexa-smart-home-v3/issues"
