@@ -70,19 +70,19 @@ module.exports = function(RED) {
                     
                     // Added Alexa message handler
                     if (msg.hasOwnProperty('directive')) {
-                        console.log("info", "Received Alexa MQTT message");
+                        //console.log("info", "Received Alexa MQTT message");
                         var endpointId = (msg.directive.endpoint.endpointId);
                     }
                     // Google Home message handler
                     if (msg.hasOwnProperty('execution')) {
-                        console.log("info", "Received Google Home MQTT message");
+                        //console.log("info", "Received Google Home MQTT message");
                         var endpointId = (msg.id);
                     }
                     
                     for (var id in node.users) {
                         if (node.users.hasOwnProperty(id)){
                             if (node.users[id].device === endpointId && node.users[id].type == "alexa-smart-home-v3") {
-                                console.log("info", "Sending command message");
+                                //console.log("info", "Sending command message");
                                 node.users[id].command(msg);
                             }
                         }
@@ -117,13 +117,9 @@ module.exports = function(RED) {
             node.users[deviceNode.id] = deviceNode;
             // Connect only on first node register/ connect
             if (Object.keys(node.users).length === 1) {
-                
                 if (deviceNode.type == "alexa-smart-home-v3") {
                     node.connect();
                 }
-                //else if (deviceNode.type == "alexa-smart-home-v3-state") {
-                //    node.connect()
-                //}
             }
         };
 
@@ -149,7 +145,7 @@ module.exports = function(RED) {
                 success: success
             };
 
-            console.log("Response: " + JSON.stringify(response));
+            //console.log("info, Response: " + JSON.stringify(response));
 
             var topic = 'response/' + node.username + '/' + device;
             if (node.client && node.client.connected) {
@@ -186,7 +182,7 @@ module.exports = function(RED) {
                 }
             };
 
-            console.log("State update: " + JSON.stringify(response));
+            console.log("info, State update: " + JSON.stringify(response));
             var topic = 'state/' + node.username + '/' + endpointId;
             if (node.client && node.client.connected) {
                 node.client.publish(topic, JSON.stringify(response));
@@ -231,7 +227,7 @@ module.exports = function(RED) {
 
             // Alexa-format message handler
             if (message.hasOwnProperty('directive')) {
-                console.log("Alexa message", message)
+                //console.log("Alexa message", message)
                 messageFormat = "Alexa";
                 var msg ={
                     topic: node.topic || "",
@@ -246,7 +242,7 @@ module.exports = function(RED) {
 
             // Google-Home format message handler
             else if (message.hasOwnProperty('execution')) {
-                console.log("Google Home message", message)
+                //console.log("Google Home message", message)
                 messageFormat = "Google Home";
                 var msg = {
                     topic: node.topic || "",
@@ -262,12 +258,16 @@ module.exports = function(RED) {
             var respond = true;
             var messageId;
 
-            console.log("Message: " + JSON.stringify(message));
+            //console.log("Message: " + JSON.stringify(message));
 
             // Alexa Message Handler
             if (messageFormat == "Alexa") {
                 if (message.directive.header.hasOwnProperty('messageId')){messageId = message.directive.header.messageId};               
                 switch(message.directive.header.name){
+                    case "Activate":
+                        // Scene Controller
+                        msg.payload = "ON"
+                        break;
                     case "AdjustBrightness":
                         // Brightness % command
                         msg.payload = message.directive.payload.brightnessDelta;
@@ -281,7 +281,7 @@ module.exports = function(RED) {
                         msg.payload = message.directive.payload.targetSetpointDelta.value;
                         msg.temperatureScale = message.directive.payload.targetSetpointDelta.scale;
                         break;
-                        case "AdjustVolume":
+                    case "AdjustVolume":
                         // Alexa.StepSpeaker
                         if (message.directive.payload.hasOwnProperty('volumeSteps')){msg.payload = message.directive.payload.volumeSteps}
                         // Alexa.Speaker
@@ -357,17 +357,52 @@ module.exports = function(RED) {
             else if (messageFormat == "Google Home") {
                 if (message.hasOwnProperty('requestId')){messageId = message.requestId};
                 switch (msg.command) {
-                    case "action.devices.commands.OnOff" :
-                        if (msg.params.on == true) {
-                            msg.command = "TurnOn"
-                            msg.payload = "ON"
-                        }
-                        else if (msg.params.on == false) {
-                            msg.command = "TurnOff"
-                            msg.payload = "OFF"
+                    case "action.devices.commands.ActivateScene" :
+                        msg.command = "Activate"
+                        msg.payload = "ON"
+                        break;
+                    case "action.devices.commands.BrightnessAbsolute":
+                        if (msg.params.hasOwnProperty('brightness')) {
+                            msg.command = "SetBrightness"
+                            msg.payload = msg.params.brightness;
                         }
                         break;
-
+                    case "action.devices.commands.ColorAbsolute":
+                        if (msg.params.color.hasOwnProperty('temperature')) {
+                            msg.command = "SetColorTemperature";
+                            msg.payload = msg.params.color.temperature;     
+                        }
+                        if (msg.params.color.hasOwnProperty('spectrumHSV')) {
+                            msg.command = "SetColor";
+                            msg.payload = {
+                                hue: msg.params.color.spectrumHSV.hue,
+                                saturation: msg.params.color.spectrumHSV.saturation,
+                                brightness: msg.params.color.spectrumHSV.value
+                            }
+                        }   
+                        break;
+                    case "action.devices.commands.OnOff" :
+                        if (msg.params.on == true) {
+                            msg.command = "TurnOn";
+                            msg.payload = "ON";
+                        }
+                        else if (msg.params.on == false) {
+                            msg.command = "TurnOff";
+                            msg.payload = "OFF";
+                        }
+                        break;
+                    case "action.devices.commands.ThermostatTemperatureSetpoint" :
+                        if (msg.params.hasOwnProperty('thermostatTemperatureSetpoint')) {
+                            msg.command = "SetTargetTemperature";
+                            msg.payload = msg.params.thermostatTemperatureSetpoint;
+                        }
+                        break;
+                    case "action.devices.commands.ThermostatSetMode" :
+                        if (msg.params.hasOwnProperty('thermostatMode')) {
+                            msg.command = "SetTargetTemperature";
+                            msg.payload = msg.params.thermostatMode;
+                        }
+                        break;
                 }
 
             }
@@ -414,7 +449,6 @@ module.exports = function(RED) {
                     conf.acknowledge(msg._messageId, msg._endpointId, false);
                 }
             }
-
         });
     }
 
@@ -446,18 +480,18 @@ module.exports = function(RED) {
                         nodeContext.set('tmpKey',key);
                     }
                     else { // If newer command same as previous, delete previous
-                        //console.log("DEBUG, Timer GET stateUpdate keys:" + Object.keys(stateUpdate.payload.state));
-                        //console.log("DEBUG, Timer GET tmpCommand keys:" + Object.keys(nodeContext.get('tmpCommand').payload.state));
+                        //console.log("debug, Timer GET stateUpdate keys:" + Object.keys(stateUpdate.payload.state));
+                        //console.log("debug, Timer GET tmpCommand keys:" + Object.keys(nodeContext.get('tmpCommand').payload.state));
                         
                         // if (Object.keys(stateUpdate.payload.state).toString() == Object.keys(nodeContext.get('tmpCommand').payload.state).toString() && stateUpdate.messageId != nodeContext.get('tmpCommand').messageId) {
                         if (Object.keys(stateUpdate.payload.state).toString() == Object.keys(nodeContext.get('tmpCommand').payload.state).toString()) {
-                            console.log("DEBUG, Timer throttled/ deleted state update: " + keys[nodeContext.get('tmpKey')]);
+                            console.log("info, Timer throttled/ deleted state update: " + keys[nodeContext.get('tmpKey')]);
                             delete onGoingCommands[keys[nodeContext.get('tmpKey')]];
                             nodeContext.set('tmpCommand',onGoingCommands[keys[key]]); 
                             nodeContext.set('tmpKey',key);
                         }
                         else {
-                            //console.log("DEBUG, Timer No match of object keys");
+                            //console.log("debug, Timer No match of object keys");
                             nodeContext.set('tmpCommand',onGoingCommands[keys[key]]);
                             nodeContext.set('tmpKey',key);
                         }
@@ -465,7 +499,7 @@ module.exports = function(RED) {
                     var diff = now - stateUpdate.timestamp;
                     if (diff > 1000) {
                         node.conf.updateState(stateUpdate.messageId, stateUpdate.endpointId, stateUpdate.payload);
-                        //console.log("DEBUG, Timer sent state update: " + keys[key]);
+                        //console.log("debug, Timer sent state update: " + keys[key]);
                         delete onGoingCommands[keys[key]];
                     }
                 }
@@ -496,8 +530,8 @@ module.exports = function(RED) {
             else if (msg.command == "Unlock"){msg.payload={"state":{"lock":"UNLOCKED"}}}
 
             if (nodeContext.get('lastPayload') && msg.payload.hasOwnProperty('state')) {
-                //console.log("DEBUG, ON Message, lastpayload: " + JSON.stringify(nodeContext.get('lastPayload')));
-                //console.log("DEBUG, ON Message, msg.payload: " + JSON.stringify(msg.payload));
+                //console.log("debug, ON Message, lastpayload: " + JSON.stringify(nodeContext.get('lastPayload')));
+                //console.log("debug, ON Message, msg.payload: " + JSON.stringify(msg.payload));
 
                 // Duplicate Payload to last payload received, discard unless an adjustment payload which is likely to be duplicate
                 if (JSON.stringify(nodeContext.get('lastPayload')) == JSON.stringify(msg.payload)
@@ -612,24 +646,24 @@ module.exports = function(RED) {
                 }
                 else if (stateValid && msg.acknowledge != true) {
                     // Either auto-acknowledge is enabled on sender node, or validation has taken place
-                    console.log("WARNING, AlexaHomeState valid state update but msg.payload.acknowledge is false/ invalid")
+                    console.log("warning, AlexaHomeState valid state update but msg.payload.acknowledge is false/ invalid")
                 }
                 else {
                     // State update not valid, logic above will explain why
-                    console.log("WARNING, AlexaHomeState state payload not valid")
+                    console.log("warning, AlexaHomeState state payload not valid")
                 }
             }
             // State missing
             else if (!msg.payload.hasOwnProperty('state')) { 
-                console.log("WARNING, AlexaHomeState incoming message missing msg.payload.state")
+                console.log("warning, AlexaHomeState incoming message missing msg.payload.state")
             }
             // Acknowledge missing
             else if (!msg.hasOwnProperty('acknowledge')) { 
-                console.log("WARNING, AlexaHomeState incoming message missing msg.acknowledge")
+                console.log("warning, AlexaHomeState incoming message missing msg.acknowledge")
             }
             // Duplicate State Update
             else if (nodeContext.get('duplicatePayload') == true) { 
-                console.log("INFO, AlexaHomeState discarded duplicate state payload")
+                console.log("info, AlexaHomeState discarded duplicate state payload")
             }
         });
 
