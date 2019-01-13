@@ -182,7 +182,7 @@ module.exports = function(RED) {
                 }
             };
 
-            console.log("info, State update: " + JSON.stringify(response));
+            console.log("info, state update: " + JSON.stringify(response));
             var topic = 'state/' + node.username + '/' + endpointId;
             if (node.client && node.client.connected) {
                 node.client.publish(topic, JSON.stringify(response));
@@ -485,7 +485,7 @@ module.exports = function(RED) {
                         
                         // if (Object.keys(stateUpdate.payload.state).toString() == Object.keys(nodeContext.get('tmpCommand').payload.state).toString() && stateUpdate.messageId != nodeContext.get('tmpCommand').messageId) {
                         if (Object.keys(stateUpdate.payload.state).toString() == Object.keys(nodeContext.get('tmpCommand').payload.state).toString()) {
-                            console.log("info, Timer throttled/ deleted state update: " + keys[nodeContext.get('tmpKey')]);
+                            console.log("info, timer throttled/ deleted state update: " + keys[nodeContext.get('tmpKey')]);
                             delete onGoingCommands[keys[nodeContext.get('tmpKey')]];
                             nodeContext.set('tmpCommand',onGoingCommands[keys[key]]); 
                             nodeContext.set('tmpKey',key);
@@ -646,24 +646,24 @@ module.exports = function(RED) {
                 }
                 else if (stateValid && msg.acknowledge != true) {
                     // Either auto-acknowledge is enabled on sender node, or validation has taken place
-                    console.log("warning, AlexaHomeState valid state update but msg.payload.acknowledge is false/ invalid")
+                    console.log("warning, valid state update but msg.payload.acknowledge is false/ invalid")
                 }
                 else {
                     // State update not valid, logic above will explain why
-                    console.log("warning, AlexaHomeState state payload not valid")
+                    console.log("warning, state update payload not valid")
                 }
             }
             // State missing
             else if (!msg.payload.hasOwnProperty('state')) { 
-                console.log("warning, AlexaHomeState incoming message missing msg.payload.state")
+                console.log("warning, incoming message missing msg.payload.state")
             }
             // Acknowledge missing
             else if (!msg.hasOwnProperty('acknowledge')) { 
-                console.log("warning, AlexaHomeState incoming message missing msg.acknowledge")
+                console.log("warning, incoming message missing msg.acknowledge")
             }
             // Duplicate State Update
             else if (nodeContext.get('duplicatePayload') == true) { 
-                console.log("info, AlexaHomeState discarded duplicate state payload")
+                console.log("info, discarded duplicate state payload")
             }
         });
 
