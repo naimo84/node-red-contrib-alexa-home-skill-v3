@@ -399,7 +399,7 @@ module.exports = function(RED) {
                         break;
                     case "action.devices.commands.ThermostatSetMode" :
                         if (msg.params.hasOwnProperty('thermostatMode')) {
-                            msg.command = "SetTargetTemperature";
+                            msg.command = "SetThermostatMode";
                             msg.payload = msg.params.thermostatMode.toUpperCase();
                         }
                         break;
