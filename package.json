@@ -21,7 +21,7 @@
     "type": "git",
     "url": "https://gitlab.cb-net.co.uk/coldfire84/node-red-contrib-alexa-smart-home-v3"
   },
-  "homepage": "https://nr-alexav3.cb-net.co.uk/",
+  "homepage": "https://red.cb-net.co.uk/",
   "node-red": {
     "nodes": {
       "alexa": "alexa.js"
