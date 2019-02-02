@@ -182,7 +182,7 @@ module.exports = function(RED) {
                 }
             };
 
-            node.log(node.name + " state node: sending state update: " + JSON.stringify(response));
+            node.log(deviceName + " state node: sending state update: " + JSON.stringify(response));
             var topic = 'state/' + node.username + '/' + endpointId;
             if (node.client && node.client.connected) {
                 node.client.publish(topic, JSON.stringify(response));
