@@ -155,7 +155,7 @@ module.exports = function(RED) {
 
         // ########################################################## 
         // Config Node Update State
-        this.updateState = function(messageId, endpointId, payload) {
+        this.updateState = function(messageId, endpointId, payload, deviceName) {
 
         var response = {
             messageId: messageId,
@@ -182,7 +182,7 @@ module.exports = function(RED) {
                 }
             };
 
-            console.log("info, state update: " + JSON.stringify(response));
+            node.log("Sending state update: " + JSON.stringify(response));
             var topic = 'state/' + node.username + '/' + endpointId;
             if (node.client && node.client.connected) {
                 node.client.publish(topic, JSON.stringify(response));
@@ -276,6 +276,10 @@ module.exports = function(RED) {
                         // Percentage Controller command
                         msg.payload = message.directive.payload.percentageDelta;               
                         break;
+                    case "AdjustRangeValue":
+                        // Range Controller command
+                        msg.payload = message.directive.payload.rangeValueDelta;               
+                        break;                    
                     case "AdjustTargetTemperature":
                         // Thermostat command
                         msg.payload = message.directive.payload.targetSetpointDelta.value;
@@ -324,6 +328,10 @@ module.exports = function(RED) {
                     case "SetPercentage":
                         // Percentage Controller  command
                         msg.payload = message.directive.payload.percentage;               
+                        break;
+                    case "SetRangeValue":
+                        // Range Controller  command
+                        msg.payload = message.directive.payload.rangeValue;               
                         break;
                     case "SetTargetTemperature":
                         // Thermostat command
@@ -485,7 +493,7 @@ module.exports = function(RED) {
                         
                         // if (Object.keys(stateUpdate.payload.state).toString() == Object.keys(nodeContext.get('tmpCommand').payload.state).toString() && stateUpdate.messageId != nodeContext.get('tmpCommand').messageId) {
                         if (Object.keys(stateUpdate.payload.state).toString() == Object.keys(nodeContext.get('tmpCommand').payload.state).toString()) {
-                            console.log("info, timer throttled/ deleted state update: " + keys[nodeContext.get('tmpKey')]);
+                            node.log("Timer throttled/ deleted state update: " + keys[nodeContext.get('tmpKey')]);
                             delete onGoingCommands[keys[nodeContext.get('tmpKey')]];
                             nodeContext.set('tmpCommand',onGoingCommands[keys[key]]); 
                             nodeContext.set('tmpKey',key);
@@ -498,7 +506,7 @@ module.exports = function(RED) {
                     }
                     var diff = now - stateUpdate.timestamp;
                     if (diff > 1000) {
-                        node.conf.updateState(stateUpdate.messageId, stateUpdate.endpointId, stateUpdate.payload);
+                        node.conf.updateState(stateUpdate.messageId, stateUpdate.endpointId, stateUpdate.payload, node.name);
                         //console.log("debug, Timer sent state update: " + keys[key]);
                         delete onGoingCommands[keys[key]];
                     }
@@ -512,22 +520,27 @@ module.exports = function(RED) {
         // Set State Node On Input Function
         node.on('input',function(msg){
             // State update could be for any state(s), validate the state message falls within expected params
-            var stateValid = false;
+            var stateValid = true;
             // Handle AlexaHome output
             if (msg.command == "AdjustPercentage"){msg.payload={"state":{"percentageDelta":msg.payload}}}
             else if (msg.command == "AdjustTargetTemperature"){msg.payload={"state":{"targetSetpointDelta":msg.payload}}}
             else if (msg.command == "AdjustVolume"){msg.payload={"state":{"volumeDelta":msg.payload}}}
+            else if (msg.command == "AdjustRangeValue"){msg.payload={"state":{"rangeValueDelta":msg.payload}}}
             else if (msg.command == "Lock"){msg.payload = {"state":{"lock":"LOCKED"}}}
             else if (msg.command == "SetBrightness"){msg.payload = {"state":{"brightness":msg.payload}}}
             else if (msg.command == "SetColor"){msg.payload={"state":{"colorHue": msg.payload.hue,"colorSaturation":msg.payload.saturation,"colorBrightness":msg.payload.brightness}}}
             else if (msg.command == "SetColorTemperature"){msg.payload = {"state":{"colorTemperature":msg.payload}}}
             else if (msg.command == "SelectInput"){msg.payload={"state":{"input":msg.payload}}}
             else if (msg.command == "SetPercentage"){msg.payload={"state":{"percentage":msg.payload}}}
+            else if (msg.command == "SetRangeValue"){msg.payload={"state":{"rangeValue":msg.payload}}}
             else if (msg.command == "SetTargetTemperature"){msg.payload={"state":{"thermostatSetPoint":msg.payload}}}
             else if (msg.command == "SetThermostatMode"){msg.payload={"state":{"thermostatMode":msg.payload}}}
             else if (msg.command == "SetVolume"){msg.payload={"state":{"volume":msg.payload}}}
             else if (msg.command == "TurnOff" || msg.command == "TurnOn"){msg.payload={"state":{"power":msg.payload}}}
             else if (msg.command == "Unlock"){msg.payload={"state":{"lock":"UNLOCKED"}}}
+            else {
+                if (msg.command){node.warn("State update message object includes invalid msg.command, please remove this from payload: " + msg.command)};
+            }
 
             if (nodeContext.get('lastPayload') && msg.payload.hasOwnProperty('state')) {
                 //console.log("debug, ON Message, lastpayload: " + JSON.stringify(nodeContext.get('lastPayload')));
@@ -575,61 +588,66 @@ module.exports = function(RED) {
 
                 // Brightness state, expect state to be a number in range of 0-100
                 if (msg.payload.state.hasOwnProperty('brightness')) {
-                    if (typeof msg.payload.state.brightness == 'number' && msg.payload.state.brightness >= 0 && msg.payload.state.brightness <= 100) {stateValid = true};
+                    if (typeof msg.payload.state.brightness != 'number' && msg.payload.state.brightness < 0 && msg.payload.state.brightness > 100) {stateValid = false};
                 }
                 // Color state, expect state to include hue, saturation and brightness, in range of 0-360 for hue and 0-1 for saturation and brightness
                 if (msg.payload.state.hasOwnProperty('colorHue') && msg.payload.state.hasOwnProperty('colorSaturation') && msg.payload.state.hasOwnProperty('colorBrightness')) {
-                    if ((msg.payload.state.colorHue >= 0 && msg.payload.state.colorHue <= 360)
-                        && (msg.payload.state.colorSaturation >= 0 && msg.payload.state.colorSaturation <= 1)
-                        && (msg.payload.state.colorBrightness >= 0 && msg.payload.state.colorBrightness <= 1)) {stateValid = true};
+                    if ((typeof msg.payload.state.colorHue != 'number'
+                        && typeof msg.payload.state.colorSaturation != 'number'
+                        && typeof msg.payload.state.colorBrightness != 'number'
+                        && msg.payload.state.colorHue < 0 && msg.payload.state.colorHue > 360)
+                        && (msg.payload.state.colorSaturation < 0 && msg.payload.state.colorSaturation > 1)
+                        && (msg.payload.state.colorBrightness < 0 && msg.payload.state.colorBrightness > 1)) {
+                            stateValid = false;
+                        }
                 }
                 // Color Temperature, expect state to include colorTemperatureInKelvin, in range of 0-10000
                 if (msg.payload.state.hasOwnProperty('colorTemperature')) {
-                    if (typeof msg.payload.state.colorTemperature == 'number' && (msg.payload.state.colorTemperature >= 0 && msg.payload.state.colorTemperature) <= 10000) {stateValid = true};
+                    if (typeof msg.payload.state.colorTemperature != 'number' && (msg.payload.state.colorTemperature < 0 && msg.payload.state.colorTemperature) > 10000) {stateValid = false};
                 }
                 // Input state, expect string, inputs will grow so no point in specific string checking
                 if (msg.payload.state.hasOwnProperty('input')) {
-                    if (typeof msg.payload.state.input == 'string') {stateValid = true};
+                    if (typeof msg.payload.state.input != 'string') {stateValid = false};
                 }
                 // Lock state, expect string, either LOCKED or UNLOCKED
                 if (msg.payload.state.hasOwnProperty('lock')) {
-                    if (typeof msg.payload.state.lock == 'string' && (msg.payload.state.lock == "LOCKED" || msg.payload.state.lock == "UNLOCKED")) {stateValid = true};
+                    if (typeof msg.payload.state.lock != 'string' && (msg.payload.state.lock != "LOCKED" || msg.payload.state.lock != "UNLOCKED")) {stateValid = false};
                 }
                 // Percentage state, expect state top be number between 0 and 100
                 if (msg.payload.state.hasOwnProperty('percentage')) {
-                    if (typeof msg.payload.state.percentage == 'number' && (msg.payload.state.percentage >= 0 || msg.payload.state.percentage <= 100)) {stateValid = true};
+                    if (typeof msg.payload.state.percentage != 'number' && (msg.payload.state.percentage < 0 || msg.payload.state.percentage > 100)) {stateValid = false};
                 }
                 // PercentageDelta state, expect state top be number between 0 and 100
                 if (msg.payload.state.hasOwnProperty('percentageDelta')) {
-                    if (typeof msg.payload.state.percentageDelta == 'number' && (msg.payload.state.percentageDelta >= -100 || msg.payload.state.percentageDelta <= 100)) {stateValid = true};
+                    if (typeof msg.payload.state.percentageDelta != 'number' && (msg.payload.state.percentageDelta < -100 || msg.payload.state.percentageDelta > 100)) {stateValid = false};
                 }
                 // Power state, expect state to be string, either ON or OFF
                 if (msg.payload.state.hasOwnProperty('power')) {
-                    if (typeof msg.payload.state.power == 'string' && (msg.payload.state.power == 'ON' || msg.payload.state.power == 'OFF')) {stateValid = true};
+                    if (typeof msg.payload.state.power != 'string' && (msg.payload.state.power != 'ON' || msg.payload.state.power != 'OFF')) {stateValid = false};
                 }
                 // Temperature sensor state, expect state to be a number
                 if (msg.payload.state.hasOwnProperty('temperature')) {
-                    if (typeof msg.payload.state.temperature == 'number') {stateValid = true};
+                    if (typeof msg.payload.state.temperature != 'number') {stateValid = false};
                 }
                 // ThermostatMode state, expect state to be a number
                 if (msg.payload.state.hasOwnProperty('thermostatMode')) {
-                    if (typeof msg.payload.state.thermostatMode == 'string') {stateValid = true};
+                    if (typeof msg.payload.state.thermostatMode != 'string') {stateValid = false};
                 }
                 // TargetSetpointDelta state, expect state to be a number
                 if (msg.payload.state.hasOwnProperty('targetSetpointDelta')) {
-                    if (typeof msg.payload.state.targetSetpointDelta == 'number') {stateValid = true};
+                    if (typeof msg.payload.state.targetSetpointDelta != 'number') {stateValid = false};
                 }
                 // ThermostatSetPoint state, expect state to be a number
                 if (msg.payload.state.hasOwnProperty('thermostatSetPoint')) {
-                    if (typeof msg.payload.state.thermostatSetPoint == 'number') {stateValid = true};
+                    if (typeof msg.payload.state.thermostatSetPoint != 'number') {stateValid = false};
                 }
                 // Volume state, expect state to be a number
                 if (msg.payload.state.hasOwnProperty('volume')) {
-                    if (typeof msg.payload.state.volume == 'number') {stateValid = true};
+                    if (typeof msg.payload.state.volume != 'number') {stateValid = false};
                 }
                 // VolumeDelta state, expect state to be a number
                 if (msg.payload.state.hasOwnProperty('volumeDelta')) {
-                    if (typeof msg.payload.state.volumeDelta == 'number') {stateValid = true};
+                    if (typeof msg.payload.state.volumeDelta != 'number') {stateValid = false};
                 }
                 if (stateValid && msg.acknowledge == true) {
                     // Send messageId, deviceId, capability and payload to updateState
@@ -642,28 +660,27 @@ module.exports = function(RED) {
                         timestamp: Date.now()
                     };
                     onGoingCommands[messageId] = command;
-
                 }
                 else if (stateValid && msg.acknowledge != true) {
                     // Either auto-acknowledge is enabled on sender node, or validation has taken place
-                    console.log("warning, valid state update but msg.payload.acknowledge is false/ invalid")
+                    node.warn("Valid state update but msg.payload.acknowledge is false/ invalid/ missing");
                 }
                 else {
                     // State update not valid, logic above will explain why
-                    console.log("warning, state update payload not valid")
+                    node.warn("State update payload not valid, check data types/ format");
                 }
             }
             // State missing
             else if (!msg.payload.hasOwnProperty('state')) { 
-                console.log("warning, incoming message missing msg.payload.state")
+                node.warn("State update message object missing msg.payload.state");
             }
             // Acknowledge missing
             else if (!msg.hasOwnProperty('acknowledge')) { 
-                console.log("warning, incoming message missing msg.acknowledge")
+                node.warn("State update message missing msg.acknowledge");
             }
             // Duplicate State Update
             else if (nodeContext.get('duplicatePayload') == true) { 
-                console.log("info, discarded duplicate state payload")
+                node.log("Discarded duplicate state payload");
             }
         });
 
@@ -746,7 +763,7 @@ module.exports = function(RED) {
             res.status(200).send();
         } else {
             //not deployed yet
-            console.log("Can't refresh until deployed");
+            node.warn("Can't refresh devices until deployed");
             res.status(404).send();
         }
     });
