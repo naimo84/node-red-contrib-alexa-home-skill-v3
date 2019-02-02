@@ -182,7 +182,7 @@ module.exports = function(RED) {
                 }
             };
 
-            node.log("Sending state update: " + JSON.stringify(response));
+            node.log(node.name + " state node: sending state update: " + JSON.stringify(response));
             var topic = 'state/' + node.username + '/' + endpointId;
             if (node.client && node.client.connected) {
                 node.client.publish(topic, JSON.stringify(response));
@@ -539,7 +539,7 @@ module.exports = function(RED) {
             else if (msg.command == "TurnOff" || msg.command == "TurnOn"){msg.payload={"state":{"power":msg.payload}}}
             else if (msg.command == "Unlock"){msg.payload={"state":{"lock":"UNLOCKED"}}}
             else {
-                if (msg.command){node.warn("State update message object includes invalid msg.command, please remove this from payload: " + msg.command)};
+                if (msg.command){node.warn(node.name + " state node: message object includes invalid msg.command, please remove this from payload: " + msg.command)};
             }
 
             if (nodeContext.get('lastPayload') && msg.payload.hasOwnProperty('state')) {
@@ -663,24 +663,24 @@ module.exports = function(RED) {
                 }
                 else if (stateValid && msg.acknowledge != true) {
                     // Either auto-acknowledge is enabled on sender node, or validation has taken place
-                    node.warn("Valid state update but msg.payload.acknowledge is false/ invalid/ missing");
+                    node.warn(node.name + " state node: valid state update but msg.payload.acknowledge is false/ invalid/ missing");
                 }
                 else {
                     // State update not valid, logic above will explain why
-                    node.warn("State update payload not valid, check data types/ format");
+                    node.warn(node.name + " state node: msg.payload.state not valid, check data types (numbers are not strings etc.) / format of state element");
                 }
             }
             // State missing
             else if (!msg.payload.hasOwnProperty('state')) { 
-                node.warn("State update message object missing msg.payload.state");
+                node.warn(node.name + " state node: msg.payload missing state element!");
             }
             // Acknowledge missing
             else if (!msg.hasOwnProperty('acknowledge')) { 
-                node.warn("State update message missing msg.acknowledge");
+                node.warn(node.name + " state node: message missing msg.acknowledge");
             }
             // Duplicate State Update
             else if (nodeContext.get('duplicatePayload') == true) { 
-                node.log("Discarded duplicate state payload");
+                node.log(node.name + " state node: discarded duplicate state payload");
             }
         });
 
