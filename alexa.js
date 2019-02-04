@@ -392,6 +392,16 @@ module.exports = function(RED) {
                             }
                         }   
                         break;
+                    case "action.devices.commands.LockUnlock" :
+                        if (msg.params.hasOwnProperty('lock')) {
+                            if (msg.params.lock == true){
+                                msg.command = "Lock";
+                            }
+                            else {
+                                msg.command = "Unlock";
+                            }
+                        }
+                        break;
                     case "action.devices.commands.mediaPause":
                         msg.command = "Pause"
                         break;
@@ -578,9 +588,9 @@ module.exports = function(RED) {
             else if (msg.command == "TurnOff" || msg.command == "TurnOn"){msg.payload={"state":{"power":msg.payload}}}
             else if (msg.command == "Unlock"){msg.payload={"state":{"lock":"UNLOCKED"}}}
             else {
-                var arrayStatelessCommands = ["Play", "Resume", "Pause","FastFoward", "Rewind", "Previous", "Next", "StartOver"]
+                var arrayStatelessCommands = ["Play", "Resume", "Pause","FastFoward", "Rewind", "Previous", "Next", "StartOver", "Lock", "Unlock"]
                 if (arrayStatelessCommands.indexOf(msg.command) > -1) {
-                    node.log(node.name + " state node: stateless command received, dropping message (expected for media commands).")
+                    node.log(node.name + " state node: stateless command received, dropping message (expected for media/ lock commands).")
                     statelessCommand = true;
                 }
                 else if (msg.command){node.warn(node.name + " state node: message object includes unexpected or invalid msg.command, please remove this from payload: " + msg.command)};
