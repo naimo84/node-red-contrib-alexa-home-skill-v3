@@ -392,6 +392,28 @@ module.exports = function(RED) {
                             }
                         }   
                         break;
+                    case "action.devices.commands.mediaPause":
+                        msg.command = "Pause"
+                        break;
+                    case "action.devices.commands.mediaResume":
+                        msg.command = "Play"
+                        break;
+                    case "action.devices.commands.mediaNext":
+                        msg.command = "Next"
+                        break;
+                    case "action.devices.commands.mediaPrevious":
+                        msg.command = "Previous"
+                        break;
+                    case "action.devices.commands.mediaStop":
+                        msg.command = "Stop"
+                        break;
+                    case "action.devices.commands.mediaSeekRelative":
+                        if (msg.params.relativePositionMs < 0){msg.command = "Rewind"}
+                        if (msg.params.relativePositionMs > 0){msg.command = "FastForward"}
+                        break;
+                    case "action.devices.commands.mediaSeekToPosition":
+                        if (msg.params.absPositionMs = 0){msg.command = "StartOver"}
+                        break;
                     case "action.devices.commands.OnOff" :
                         if (msg.params.on == true) {
                             msg.command = "TurnOn";
@@ -536,6 +558,7 @@ module.exports = function(RED) {
         node.on('input',function(msg){
             // State update could be for any state(s), validate the state message falls within expected params
             var stateValid = true;
+            var statelessCommand = false;
             // Handle AlexaHome output
             if (msg.command == "AdjustPercentage"){msg.payload={"state":{"percentageDelta":msg.payload}}}
             else if (msg.command == "AdjustTargetTemperature"){msg.payload={"state":{"targetSetpointDelta":msg.payload}}}
@@ -555,10 +578,15 @@ module.exports = function(RED) {
             else if (msg.command == "TurnOff" || msg.command == "TurnOn"){msg.payload={"state":{"power":msg.payload}}}
             else if (msg.command == "Unlock"){msg.payload={"state":{"lock":"UNLOCKED"}}}
             else {
-                if (msg.command){node.warn(node.name + " state node: message object includes invalid msg.command, please remove this from payload: " + msg.command)};
+                var arrayStatelessCommands = ["Play", "Resume", "Pause","FastFoward", "Rewind", "Previous", "Next", "StartOver"]
+                if (arrayStatelessCommands.indexOf(msg.command) > -1) {
+                    node.log(node.name + " state node: stateless command received, dropping message (expected for media commands).")
+                    statelessCommand = true;
+                }
+                else if (msg.command){node.warn(node.name + " state node: message object includes unexpected or invalid msg.command, please remove this from payload: " + msg.command)};
             }
 
-            if (nodeContext.get('lastPayload') && msg.payload.hasOwnProperty('state')) {
+            if (statelessCommand == false && nodeContext.get('lastPayload') && msg.payload.hasOwnProperty('state')) {
                 //console.log("debug, ON Message, lastpayload: " + JSON.stringify(nodeContext.get('lastPayload')));
                 //console.log("debug, ON Message, msg.payload: " + JSON.stringify(msg.payload));
 
@@ -582,7 +610,7 @@ module.exports = function(RED) {
             }
 
             // Set State Payload Handler
-            if (msg.payload.hasOwnProperty('state') && msg.hasOwnProperty('acknowledge') && nodeContext.get('duplicatePayload') == false) {
+            if (statelessCommand == false && msg.hasOwnProperty('payload') && msg.payload.hasOwnProperty('state') && msg.hasOwnProperty('acknowledge') && nodeContext.get('duplicatePayload') == false) {
                 // Perform validation of device state payload, expects payload.state to contain as below
                 //     "power": payload.state.power,
                 //     "brightness": payload.state.brightness,
@@ -697,12 +725,16 @@ module.exports = function(RED) {
                     node.warn(node.name + " state node: msg.payload.state not valid, check data types (numbers are not strings etc.) / format of state element");
                 }
             }
+            // Payload missing
+            else if (statelessCommand == false && !msg.hasOwnProperty('payload')) { 
+                node.warn(node.name + " state node: msg.payload missing!");
+            }            
             // State missing
-            else if (!msg.payload.hasOwnProperty('state')) { 
+            else if (statelessCommand == false && !msg.payload.hasOwnProperty('state')) { 
                 node.warn(node.name + " state node: msg.payload missing state element!");
             }
             // Acknowledge missing
-            else if (!msg.hasOwnProperty('acknowledge')) { 
+            else if (statelessCommand == false && !msg.hasOwnProperty('acknowledge')) { 
                 node.warn(node.name + " state node: message missing msg.acknowledge");
             }
             // Duplicate State Update
