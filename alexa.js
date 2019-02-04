@@ -168,10 +168,13 @@ module.exports = function(RED) {
                     "colorTemperature": payload.state.colorTemperature,
                     "input": payload.state.input,
                     "lock": payload.state.lock,
+                    "mute": payload.state.mute,
                     "percentage": payload.state.percentage,
                     "percentageDelta": payload.state.percentageDelta,
                     "playback": payload.state.playback,
                     "power": payload.state.power,
+                    "rangeValue": payload.state.rangeValue,
+                    "rangeValueDelta": payload.state.rangeValueDelta,
                     "temperature": payload.state.temperature,
                     "thermostatMode": payload.state.thermostatMode,
                     "thermostatSetPoint" : payload.state.thermostatSetPoint,
@@ -399,6 +402,12 @@ module.exports = function(RED) {
                             msg.payload = "OFF";
                         }
                         break;
+                    case "action.devices.commands.setVolume" :
+                        if (msg.params.hasOwnProperty('volumeLevel')) {
+                            msg.command = "SetVolume";
+                            msg.payload = msg.params.volumeLevel;
+                        }
+                        break;
                     case "action.devices.commands.ThermostatTemperatureSetpoint" :
                         if (msg.params.hasOwnProperty('thermostatTemperatureSetpoint')) {
                             msg.command = "SetTargetTemperature";
@@ -411,8 +420,13 @@ module.exports = function(RED) {
                             msg.payload = msg.params.thermostatMode.toUpperCase();
                         }
                         break;
+                    case "action.devices.commands.volumeRelative" :
+                        if (msg.params.hasOwnProperty('volumeRelativeLevel')) {
+                             msg.command = "AdjustVolume";
+                             msg.payload = msg.params.volumeRelativeLevel;
+                        }
+                        break;
                 }
-
             }
 
             if (node.acknowledge) {
@@ -431,7 +445,8 @@ module.exports = function(RED) {
             }
         }
 
-        node.conf.register(node);
+        if (node.conf){node.conf.register(node)}
+        else {node.warn("Unable to register device node, account not configured!")}
 
         node.on('close', function(done){
             node.conf.deregister(node, done);
@@ -531,6 +546,7 @@ module.exports = function(RED) {
             else if (msg.command == "SetColor"){msg.payload={"state":{"colorHue": msg.payload.hue,"colorSaturation":msg.payload.saturation,"colorBrightness":msg.payload.brightness}}}
             else if (msg.command == "SetColorTemperature"){msg.payload = {"state":{"colorTemperature":msg.payload}}}
             else if (msg.command == "SelectInput"){msg.payload={"state":{"input":msg.payload}}}
+            else if (msg.command == "SetMute"){msg.payload={"state":{"mute":msg.payload}}}
             else if (msg.command == "SetPercentage"){msg.payload={"state":{"percentage":msg.payload}}}
             else if (msg.command == "SetRangeValue"){msg.payload={"state":{"rangeValue":msg.payload}}}
             else if (msg.command == "SetTargetTemperature"){msg.payload={"state":{"thermostatSetPoint":msg.payload}}}
@@ -576,9 +592,12 @@ module.exports = function(RED) {
                 //     "colorTemperature": payload.state.colorTemperature,
                 //     "input": payload.state.input,
                 //     "lock": payload.state.lock,
+                //     "mute": payload.state.mute,
                 //     "playback": payload.state.playback,
                 //     "percentage": payload.state.percentage,
                 //     "percentageDelta": payload.state.percentageDelta,
+                //     "rangeValue": payload.state.rangeValue,
+                //     "rangeValueDelta": payload.state.rangeValueDelta,
                 //     "temperature": payload.state.temperature,
                 //     "targetSetpointDelta": payload.state.targetSetpointDelta,
                 //     "thermostatMode": payload.state.thermostatMode,
@@ -612,6 +631,14 @@ module.exports = function(RED) {
                 // Lock state, expect string, either LOCKED or UNLOCKED
                 if (msg.payload.state.hasOwnProperty('lock')) {
                     if (typeof msg.payload.state.lock != 'string' && (msg.payload.state.lock != "LOCKED" || msg.payload.state.lock != "UNLOCKED")) {stateValid = false};
+                }
+                // Mute state, expect string, either ON or OFF
+                if (msg.payload.state.hasOwnProperty('mute')) {
+                    if (typeof msg.payload.state.mute != 'string' && (msg.payload.state.mute != "ON" || msg.payload.state.mute != "OFF")) {stateValid = false}
+                    else {
+                        if (msg.payload.state.mute == 'ON'){msg.payload.state.mute = true}
+                        else if (msg.payload.state.mute == 'OFF'){msg.payload.state.mute = false}
+                    }
                 }
                 // Percentage state, expect state top be number between 0 and 100
                 if (msg.payload.state.hasOwnProperty('percentage')) {
@@ -684,7 +711,8 @@ module.exports = function(RED) {
             }
         });
 
-        node.conf.register(node);
+        if (node.conf){node.conf.register(node)}
+        else {node.warn("Unable to register state node, account not configured!")}
 
         node.on('close', function(done){
             node.conf.deregister(node, done);
