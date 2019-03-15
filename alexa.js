@@ -185,7 +185,7 @@ module.exports = function(RED) {
                 }
             };
 
-            node.log(deviceName + " state node: sending state update: " + JSON.stringify(response));
+            node.log(deviceName + " : sending state update: " + JSON.stringify(response));
             var topic = 'state/' + node.username + '/' + endpointId;
             if (node.client && node.client.connected) {
                 node.client.publish(topic, JSON.stringify(response));
@@ -396,33 +396,42 @@ module.exports = function(RED) {
                         if (msg.params.hasOwnProperty('lock')) {
                             if (msg.params.lock == true){
                                 msg.command = "Lock";
+                                delete msg.payload;
                             }
                             else {
                                 msg.command = "Unlock";
+                                delete msg.payload;
                             }
                         }
                         break;
                     case "action.devices.commands.mediaPause":
                         msg.command = "Pause"
+                        delete msg.payload;
                         break;
                     case "action.devices.commands.mediaResume":
                         msg.command = "Play"
+                        delete msg.payload;
                         break;
                     case "action.devices.commands.mediaNext":
                         msg.command = "Next"
+                        delete msg.payload;
                         break;
                     case "action.devices.commands.mediaPrevious":
                         msg.command = "Previous"
+                        delete msg.payload;
                         break;
                     case "action.devices.commands.mediaStop":
                         msg.command = "Stop"
+                        delete msg.payload;
                         break;
                     case "action.devices.commands.mediaSeekRelative":
                         if (msg.params.relativePositionMs < 0){msg.command = "Rewind"}
                         if (msg.params.relativePositionMs > 0){msg.command = "FastForward"}
+                        delete msg.payload;
                         break;
                     case "action.devices.commands.mediaSeekToPosition":
                         if (msg.params.absPositionMs = 0){msg.command = "StartOver"}
+                        delete msg.payload;
                         break;
                     case "action.devices.commands.OnOff" :
                         if (msg.params.on == true) {
@@ -779,6 +788,7 @@ module.exports = function(RED) {
         if (url && username && password) {
             request.get({
                 url: "https://" + url + "/api/v1/devices",
+                ecdhCurve: 'auto',
                 auth: {
                     username: username,
                     password: password
@@ -789,8 +799,8 @@ module.exports = function(RED) {
                     //console.log(devs);
                     devices[id] = devs;
                 } else {
-                    //console.("err: " + err);
-                    RED.log.log("Problem looking up " + username + "'s devices");
+                    console.log("Problem looking up " + username + "'s devices");
+                    console.log("getDevices error: " + err);
                 }
             });
         }
@@ -833,7 +843,7 @@ module.exports = function(RED) {
             res.status(200).send();
         } else {
             //not deployed yet
-            node.warn("Can't refresh devices until deployed");
+            RED.warn("Can't refresh devices until deployed");
             res.status(404).send();
         }
     });
