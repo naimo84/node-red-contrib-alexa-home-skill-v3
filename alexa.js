@@ -16,11 +16,12 @@
 
 module.exports = function(RED) {
     "use strict";
-    var request = require('request');
+    //var request = require('request');
     var mqtt = require('mqtt');
     var bodyParser = require('body-parser');
     var devices = {};
-
+    const https = require('https');
+    
     // Config Node
     function alexaConf(n) {
     	RED.nodes.createNode(this,n);
@@ -656,21 +657,29 @@ module.exports = function(RED) {
                 if (msg.payload.state.hasOwnProperty('brightness')) {
                     if (typeof msg.payload.state.brightness != 'number' && msg.payload.state.brightness < 0 && msg.payload.state.brightness > 100) {stateValid = false};
                 }
-                // Color state, expect state to include hue, saturation and brightness, in range of 0-360 for hue and 0-1 for saturation and brightness
-                if (msg.payload.state.hasOwnProperty('colorHue') && msg.payload.state.hasOwnProperty('colorSaturation') && msg.payload.state.hasOwnProperty('colorBrightness')) {
-                    if ((typeof msg.payload.state.colorHue != 'number'
-                        && typeof msg.payload.state.colorSaturation != 'number'
-                        && typeof msg.payload.state.colorBrightness != 'number'
-                        && msg.payload.state.colorHue < 0 && msg.payload.state.colorHue > 360)
-                        && (msg.payload.state.colorSaturation < 0 && msg.payload.state.colorSaturation > 1)
-                        && (msg.payload.state.colorBrightness < 0 && msg.payload.state.colorBrightness > 1)) {
-                            stateValid = false;
-                        }
+
+                // If *both* color and colorTemperature state sent, warn and do not send
+                if ((msg.payload.state.hasOwnProperty('colorHue') && msg.payload.state.hasOwnProperty('colorSaturation') && msg.payload.state.hasOwnProperty('colorBrightness')) 
+                && msg.payload.state.hasOwnProperty('colorTemperature')) {
+                    node.warn(node.name + " state node: you cannot send combined 'colorTemperatrure' and 'color' state updates, send most recent update/ change only");
+                    stateValid = false;
                 }
+                // Color state, expect state to include hue, saturation and brightness, in range of 0-360 for hue and 0-1 for saturation and brightness
+                else if (msg.payload.state.hasOwnProperty('colorHue') && msg.payload.state.hasOwnProperty('colorSaturation') && msg.payload.state.hasOwnProperty('colorBrightness')) {
+                    if ((typeof msg.payload.state.colorHue != 'number'
+                            && typeof msg.payload.state.colorSaturation != 'number'
+                            && typeof msg.payload.state.colorBrightness != 'number'
+                            && msg.payload.state.colorHue < 0 && msg.payload.state.colorHue > 360)
+                            && (msg.payload.state.colorSaturation < 0 && msg.payload.state.colorSaturation > 1)
+                            && (msg.payload.state.colorBrightness < 0 && msg.payload.state.colorBrightness > 1)) {
+                                stateValid = false;
+                            }
+                    }
                 // Color Temperature, expect state to include colorTemperatureInKelvin, in range of 0-10000
-                if (msg.payload.state.hasOwnProperty('colorTemperature')) {
+                else if (msg.payload.state.hasOwnProperty('colorTemperature')) {
                     if (typeof msg.payload.state.colorTemperature != 'number' && (msg.payload.state.colorTemperature < 0 && msg.payload.state.colorTemperature) > 10000) {stateValid = false};
                 }
+
                 // Input state, expect string, inputs will grow so no point in specific string checking
                 if (msg.payload.state.hasOwnProperty('input')) {
                     if (typeof msg.payload.state.input != 'string') {stateValid = false};
@@ -786,25 +795,62 @@ module.exports = function(RED) {
     // ## Changed to include url in expected params
     function getDevices(url, username, password, id){
         if (url && username && password) {
-            request.get({
-                url: "https://" + url + "/api/v1/devices",
+            // request.get({
+            //     url: "https://" + url + "/api/v1/devices",
+            //     ecdhCurve: 'auto',
+            //     auth: {
+            //         username: username,
+            //         password: password
+            //     }
+            // }, function(err, res, body){
+            //     if (!err && res.statusCode == 200) {
+            //         var devs = JSON.parse(body);
+            //         //console.log(devs);
+            //         devices[id] = devs;
+            //     } else {
+            //         console.log("Problem looking up " + username + "'s devices");
+            //         console.log("getDevices error: " + err);
+            //     }
+            // });
+            const options = {
                 ecdhCurve: 'auto',
-                auth: {
-                    username: username,
-                    password: password
-                }
-            }, function(err, res, body){
-                if (!err && res.statusCode == 200) {
-                    var devs = JSON.parse(body);
-                    //console.log(devs);
-                    devices[id] = devs;
-                } else {
-                    console.log("Problem looking up " + username + "'s devices");
-                    console.log("getDevices error: " + err);
-                }
+                hostname: url,
+                port: 443,
+                path: '/api/v1/devices',
+                method: 'GET',
+                auth: username +":"+ password
+              };
+              
+            const req = https.request(options, (res) => {
+                //console.log('statusCode:', res.statusCode);
+                //console.log('headers:', res.headers);
+                res.on('data', (d) => {
+                    if (res.statusCode == 200) {
+                        var devs = JSON.parse(d);
+                        //console.log("Retruned device data: " + devs);
+                        devices[id] = devs;
+                    }
+                    else {
+                        console.log("Error: getDevices status code: " + res.statusCode);
+                        console.log("Error: getDevices returned data: " + res.d);
+                    }
+                });
+              });
+              
+            req.on('error', (e) => {
+                console.log("Error: getDevices unable to lookup devices for username: " + username);
+                console.log("Error: getDevices returned: " + e);
             });
+            req.end();
         }
     };
+
+
+
+
+
+
+
 
     // UUID Generator
     function uuid() {
