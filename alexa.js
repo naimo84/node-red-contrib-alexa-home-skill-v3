@@ -16,12 +16,22 @@
 
 module.exports = function(RED) {
     "use strict";
-    //var request = require('request');
     var mqtt = require('mqtt');
     var bodyParser = require('body-parser');
     var devices = {};
     const https = require('https');
+    const tls = require('tls');
+    const semver = require('semver');
     
+    // TODO: Remove after NodeJS fix it, more information
+    // https://github.com/nodejs/node/issues/16196
+    // https://github.com/nodejs/node/pull/16853
+    // This is fixed in Node 10, but this woraround also supports LTS versions
+    // https://github.com/nodejs/node/pull/15206
+    if (semver.gte(process.version, '8.6.0') && tls.DEFAULT_ECDH_CURVE === 'prime256v1') {
+        tls.DEFAULT_ECDH_CURVE = 'auto';
+    }
+
     // Config Node
     function alexaConf(n) {
     	RED.nodes.createNode(this,n);
@@ -795,62 +805,41 @@ module.exports = function(RED) {
     // ## Changed to include url in expected params
     function getDevices(url, username, password, id){
         if (url && username && password) {
-            // request.get({
-            //     url: "https://" + url + "/api/v1/devices",
-            //     ecdhCurve: 'auto',
-            //     auth: {
-            //         username: username,
-            //         password: password
-            //     }
-            // }, function(err, res, body){
-            //     if (!err && res.statusCode == 200) {
-            //         var devs = JSON.parse(body);
-            //         //console.log(devs);
-            //         devices[id] = devs;
-            //     } else {
-            //         console.log("Problem looking up " + username + "'s devices");
-            //         console.log("getDevices error: " + err);
-            //     }
-            // });
             const options = {
-                ecdhCurve: 'auto',
+                //ecdhCurve: 'auto',
                 hostname: url,
                 port: 443,
                 path: '/api/v1/devices',
                 method: 'GET',
                 auth: username +":"+ password
               };
-              
-            const req = https.request(options, (res) => {
-                //console.log('statusCode:', res.statusCode);
-                //console.log('headers:', res.headers);
-                res.on('data', (d) => {
+                    
+            const req = https.request(options, (res) => { 
+                //console.log('statusCode:', res.statusCode); 
+                //console.log('headers:', res.headers); 
+                var body='' 
+                res.on('data', (d) => { 
                     if (res.statusCode == 200) {
-                        var devs = JSON.parse(d);
-                        //console.log("Retruned device data: " + devs);
-                        devices[id] = devs;
-                    }
-                    else {
-                        console.log("Error: getDevices status code: " + res.statusCode);
-                        console.log("Error: getDevices returned data: " + res.d);
-                    }
-                });
-              });
-              
+                        body = body + d;
+                        }
+                    else { 
+                        console.log("Error: getDevices status code: " + res.statusCode); 
+                        console.log("Error: getDevices returned data: " + res.d); } 
+                    });
+
+                res.on('end', (d) => { 
+                    var devs = JSON.parse(body);
+                    devices[id] = devs; 
+                }); 
+            });            
+
             req.on('error', (e) => {
                 console.log("Error: getDevices unable to lookup devices for username: " + username);
                 console.log("Error: getDevices returned: " + e);
             });
             req.end();
-        }
+        };
     };
-
-
-
-
-
-
-
 
     // UUID Generator
     function uuid() {
