@@ -177,6 +177,7 @@ module.exports = function(RED) {
                     "colorHue": payload.state.colorHue,
                     "colorSaturation": payload.state.colorSaturation,
                     "colorTemperature": payload.state.colorTemperature,
+                    "contact": payload.state.contact,
                     "input": payload.state.input,
                     "lock": payload.state.lock,
                     "mute": payload.state.mute,
@@ -648,6 +649,7 @@ module.exports = function(RED) {
                 //     "colorHue": payload.state.colorHue,
                 //     "colorSaturation": payload.state.colorSaturation,
                 //     "colorTemperature": payload.state.colorTemperature,
+                //     "contact": payload.state.contact,
                 //     "input": payload.state.input,
                 //     "lock": payload.state.lock,
                 //     "mute": payload.state.mute,
@@ -689,7 +691,10 @@ module.exports = function(RED) {
                 else if (msg.payload.state.hasOwnProperty('colorTemperature')) {
                     if (typeof msg.payload.state.colorTemperature != 'number' && (msg.payload.state.colorTemperature < 0 && msg.payload.state.colorTemperature) > 10000) {stateValid = false};
                 }
-
+                // Contact Sensor state, expect state to be a string
+                if (msg.payload.state.hasOwnProperty('contact')) {
+                    if (typeof msg.payload.state.contact != 'string'  && (msg.payload.state.contact != "DETECTED" || msg.payload.state.contact != "NOT_DETECTED")) {stateValid = false};
+                }
                 // Input state, expect string, inputs will grow so no point in specific string checking
                 if (msg.payload.state.hasOwnProperty('input')) {
                     if (typeof msg.payload.state.input != 'string') {stateValid = false};
