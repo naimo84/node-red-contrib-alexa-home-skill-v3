@@ -723,6 +723,14 @@ module.exports = function(RED) {
                 if (msg.payload.state.hasOwnProperty('power')) {
                     if (typeof msg.payload.state.power != 'string' && (msg.payload.state.power != 'ON' || msg.payload.state.power != 'OFF')) {stateValid = false};
                 }
+                // Range value, expect number
+				if (msg.payload.state.hasOwnProperty('rangeValue')) {
+					if (typeof msg.payload.state.rangeValue != 'number'){stateValid = false};
+				};
+                // Range value delta, expect number
+				if (msg.payload.state.hasOwnProperty('rangeValueDelta')) {
+					if (typeof msg.payload.state.rangeValueDelta != 'number'){stateValid = false};
+				};
                 // Temperature sensor state, expect state to be a number
                 if (msg.payload.state.hasOwnProperty('temperature')) {
                     if (typeof msg.payload.state.temperature != 'number') {stateValid = false};
