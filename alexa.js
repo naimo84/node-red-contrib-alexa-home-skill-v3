@@ -272,6 +272,7 @@ module.exports = function(RED) {
 
             var respond = true;
             var messageId;
+            var supportedCommand = true;
 
             //console.log("Message: " + JSON.stringify(message));
 
@@ -372,6 +373,11 @@ module.exports = function(RED) {
                     case "Unlock":
                         // Unlock command
                         msg.payload = "Unlock";               
+                        break;
+                    default:
+                        // Do not handle unsupported commands
+                        node.warn("Alexa command unsupported!");
+                        supportedCommand = false;
                         break;
                 }
             }
@@ -479,22 +485,21 @@ module.exports = function(RED) {
                              msg.payload = msg.params.volumeRelativeLevel;
                         }
                         break;
+                    default:
+                        // Do not handle unsupported commands
+                        node.warn("Google Assistant command unsupported!");
+                        supportedCommand = false;
+                        break;
                 }
             }
-
-            if (node.acknowledge) {
-                msg.acknowledge = {};
-                msg.acknowledge = true;
-            }
-            else {
-                msg.acknowledge = {};
-                msg.acknowledge = false;   
-            }
-
-            node.send(msg);
-
-            if (node.acknowledge && respond && messageId) {
-                node.conf.acknowledge(messageId, node.device, true);
+            msg.acknowledge = {};
+            if (node.acknowledge) {msg.acknowledge = true}
+            else {msg.acknowledge = false}
+            if (supportedCommand == true) {
+                node.send(msg);
+                if (node.acknowledge && respond && messageId) {
+                    node.conf.acknowledge(messageId, node.device, true);
+                }
             }
         }
 
