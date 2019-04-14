@@ -76,28 +76,43 @@ module.exports = function(RED) {
 
                 node.client.removeAllListeners('message');
                 node.client.subscribe("command/" + node.username + "/#");
+                node.client.subscribe("message/" + node.username + "/#");
                 node.client.on('message', function(topic, message){
                     var msg = JSON.parse(message.toString());
-                    
-                    // Added Alexa message handler
-                    if (msg.hasOwnProperty('directive')) {
-                        //console.log("info", "Received Alexa MQTT message");
-                        var endpointId = (msg.directive.endpoint.endpointId);
-                    }
-                    // Google Home message handler
-                    if (msg.hasOwnProperty('execution')) {
-                        //console.log("info", "Received Google Home MQTT message");
-                        var endpointId = (msg.id);
-                    }
-                    
-                    for (var id in node.users) {
-                        if (node.users.hasOwnProperty(id)){
-                            if (node.users[id].device === endpointId && node.users[id].type == "alexa-smart-home-v3") {
-                                //console.log("info", "Sending command message");
-                                node.users[id].command(msg);
+                    //console.log("INFO, new MQTT message");
+                    //console.log("INFO, message:" + JSON.stringify(msg));
+
+                    // Message/ alert handler
+                    if (topic.indexOf('message') > -1 ) {
+                        var severity = msg.severity;
+                        var alert = msg.message;
+                        if (severity == 'warn'){node.warn(alert)}
+                        else if (severity == 'error'){node.error(alert)}
+                    };
+                    // Command handler
+                    if (topic.indexOf('command') > -1 ) {
+                        // Added Alexa message handler
+                        if (msg.hasOwnProperty('directive')) {
+                            //console.log("info", "Received Alexa MQTT message");
+                            var endpointId = (msg.directive.endpoint.endpointId);
+                        }
+                        // Google Home message handler
+                        if (msg.hasOwnProperty('execution')) {
+                            //console.log("info", "Received Google Home MQTT message");
+                            var endpointId = (msg.id);
+                        }
+                        
+                        for (var id in node.users) {
+                            if (node.users.hasOwnProperty(id)){
+                                if (node.users[id].device === endpointId && node.users[id].type == "alexa-smart-home-v3") {
+                                    //console.log("info", "Sending command message");
+                                    node.users[id].command(msg);
+                                }
                             }
                         }
                     }
+
+
                 });
             });
 
