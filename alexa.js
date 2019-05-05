@@ -331,10 +331,34 @@ module.exports = function(RED) {
                             msg.payload = message.directive.payload.channelMetadata.name
                         }
                         break;
+                    case "FastForward":
+                        // FastForward command
+                        msg.payload = "FastForward";               
+                        break; 
                     case "Lock":
                         // Lock command
                         msg.payload = "Lock";               
                         break;
+                    case "Next":
+                        // Next command
+                        msg.payload = "Next";               
+                        break;    
+                    case "Pause":
+                        // Pause command
+                        msg.payload = "Pause";               
+                        break;    
+                    case "Play":
+                        // Play command
+                        msg.payload = "Play";               
+                        break;
+                    case "Previous":
+                        // Previous command
+                        msg.payload = "Previous";               
+                        break;
+                    case "Rewind":
+                        // Rewind command
+                        msg.payload = "Rewind";               
+                        break;                            
                     case "SelectInput":
                         // Select input command
                         msg.payload = message.directive.payload.input;
@@ -377,6 +401,14 @@ module.exports = function(RED) {
                         // Speaker command
                         msg.payload = message.directive.payload.volume;               
                         break;
+                    case "StartOver":
+                        // StartOver command
+                        msg.payload = "StartOver";               
+                        break;     
+                    case "Stop":
+                        // Stop command
+                        msg.payload = "Stop";               
+                        break;     
                     case "TurnOn":
                         // Power-on command
                         msg.payload = "ON";
