@@ -22,11 +22,12 @@ module.exports = function(RED) {
     const https = require('https');
     const tls = require('tls');
     const semver = require('semver');
-    
+    const uuidv4 = require('uuid/v4')
+
     // TODO: Remove after NodeJS fix it, more information
     // https://github.com/nodejs/node/issues/16196
     // https://github.com/nodejs/node/pull/16853
-    // This is fixed in Node 10, but this woraround also supports LTS versions
+    // This is fixed in Node 10, but this workaround also supports LTS versions
     // https://github.com/nodejs/node/pull/15206
     if (semver.gte(process.version, '8.6.0') && tls.DEFAULT_ECDH_CURVE === 'prime256v1') {
         tls.DEFAULT_ECDH_CURVE = 'auto';
@@ -43,10 +44,12 @@ module.exports = function(RED) {
     	var node = this;
 
         // MQTT connect options
-         var options = {
+        var clientId = uuidv4(); // Generate UUID for use in clientId - clientId limit for Mosquitto is 65535 bytes
+        var options = {
             username: node.username,
             password: node.password,
-            clientId: node.username,
+            //clientId: node.username,
+            clientId: node.username + '-' + clientId,
             reconnectPeriod: 5000,
             servers:[
                 {
