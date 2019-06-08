@@ -722,7 +722,7 @@ module.exports = function(RED) {
 
                 // Brightness state, expect state to be a number in range of 0-100
                 if (msg.payload.state.hasOwnProperty('brightness')) {
-                    if (typeof msg.payload.state.brightness != 'number' && msg.payload.state.brightness < 0 && msg.payload.state.brightness > 100) {stateValid = false};
+                    if (typeof msg.payload.state.brightness != 'number' && (msg.payload.state.brightness < 0 || msg.payload.state.brightness > 100)) {stateValid = false};
                 }
 
                 // If *both* color and colorTemperature state sent, warn and do not send
@@ -744,7 +744,7 @@ module.exports = function(RED) {
                     }
                 // Color Temperature, expect state to include colorTemperatureInKelvin, in range of 0-10000
                 else if (msg.payload.state.hasOwnProperty('colorTemperature')) {
-                    if (typeof msg.payload.state.colorTemperature != 'number' && (msg.payload.state.colorTemperature < 0 && msg.payload.state.colorTemperature) > 10000) {stateValid = false};
+                    if (typeof msg.payload.state.colorTemperature != 'number' && (msg.payload.state.colorTemperature < 0 || msg.payload.state.colorTemperature) > 10000) {stateValid = false};
                 }
                 // Contact Sensor state, expect state to be a string
                 if (msg.payload.state.hasOwnProperty('contact')) {
