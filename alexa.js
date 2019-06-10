@@ -198,6 +198,7 @@ module.exports = function(RED) {
                     "contact": payload.state.contact,
                     "input": payload.state.input,
                     "lock": payload.state.lock,
+                    "motion": payload.state.motion,
                     "mute": payload.state.mute,
                     "percentage": payload.state.percentage,
                     "percentageDelta": payload.state.percentageDelta,
@@ -707,6 +708,7 @@ module.exports = function(RED) {
                 //     "contact": payload.state.contact,
                 //     "input": payload.state.input,
                 //     "lock": payload.state.lock,
+                //     "motion": payload.state.motion,
                 //     "mute": payload.state.mute,
                 //     "playback": payload.state.playback,
                 //     "percentage": payload.state.percentage,
@@ -723,6 +725,8 @@ module.exports = function(RED) {
                 // Brightness state, expect state to be a number in range of 0-100
                 if (msg.payload.state.hasOwnProperty('brightness')) {
                     if (typeof msg.payload.state.brightness != 'number' && (msg.payload.state.brightness < 0 || msg.payload.state.brightness > 100)) {stateValid = false};
+                    //node.log(node.name + " state node: brightness command received")
+                    //node.log(node.name + " " + JSON.stringify(msg.payload));
                 }
 
                 // If *both* color and colorTemperature state sent, warn and do not send
@@ -744,7 +748,7 @@ module.exports = function(RED) {
                     }
                 // Color Temperature, expect state to include colorTemperatureInKelvin, in range of 0-10000
                 else if (msg.payload.state.hasOwnProperty('colorTemperature')) {
-                    if (typeof msg.payload.state.colorTemperature != 'number' && (msg.payload.state.colorTemperature < 0 || msg.payload.state.colorTemperature) > 10000) {stateValid = false};
+                    if (typeof msg.payload.state.colorTemperature != 'number' && (msg.payload.state.colorTemperature < 0 || msg.payload.state.colorTemperature > 10000)) {stateValid = false};
                 }
                 // Contact Sensor state, expect state to be a string
                 if (msg.payload.state.hasOwnProperty('contact')) {
@@ -758,6 +762,10 @@ module.exports = function(RED) {
                 if (msg.payload.state.hasOwnProperty('lock')) {
                     if (typeof msg.payload.state.lock != 'string' && (msg.payload.state.lock != "LOCKED" || msg.payload.state.lock != "UNLOCKED")) {stateValid = false};
                 }
+                // Motion Sensor state, expect state to be a string
+                if (msg.payload.state.hasOwnProperty('motion')) {
+                    if (typeof msg.payload.state.motion != 'string'  && (msg.payload.state.motion != "DETECTED" || msg.payload.state.motion != "NOT_DETECTED")) {stateValid = false};
+                }                
                 // Mute state, expect string, either ON or OFF
                 if (msg.payload.state.hasOwnProperty('mute')) {
                     if (typeof msg.payload.state.mute != 'string' && (msg.payload.state.mute != "ON" || msg.payload.state.mute != "OFF")) {stateValid = false}
