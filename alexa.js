@@ -666,9 +666,9 @@ module.exports = function(RED) {
             else if (msg.command == "TurnOff" || msg.command == "TurnOn"){msg.payload={"state":{"power":msg.payload}}}
             else if (msg.command == "Unlock"){msg.payload={"state":{"lock":"UNLOCKED"}}}
             else {
-                var arrayStatelessCommands = ["Play", "Resume", "Pause","FastFoward", "Rewind", "Previous", "Next", "StartOver", "Lock", "Unlock"]
+                var arrayStatelessCommands = ["Play", "Resume", "Pause","FastFoward", "Rewind", "Previous", "Next", "StartOver"]
                 if (arrayStatelessCommands.indexOf(msg.command) > -1) {
-                    node.log(node.name + " state node: stateless command received, dropping message (expected for media/ lock commands).")
+                    node.log(node.name + " state node: 'stateless' command received, dropping message (expected for specific commands).")
                     statelessCommand = true;
                 }
                 else if (msg.command){node.warn(node.name + " state node: message object includes unexpected or invalid msg.command, please remove this from payload: " + msg.command)};
