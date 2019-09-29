@@ -674,7 +674,8 @@ module.exports = function(RED) {
                 else if (msg.command){node.warn(node.name + " state node: message object includes unexpected or invalid msg.command, please remove this from payload: " + msg.command)};
             }
 
-            if (statelessCommand == false && nodeContext.get('lastPayload') && msg.payload.hasOwnProperty('state')) {
+            // Adjusted to send state update after any Alexa/ Google Home command
+            if (msg.hasOwnProperty('command') == false && statelessCommand == false && nodeContext.get('lastPayload') && msg.payload.hasOwnProperty('state')) {
                 //console.log("debug, ON Message, lastpayload: " + JSON.stringify(nodeContext.get('lastPayload')));
                 //console.log("debug, ON Message, msg.payload: " + JSON.stringify(msg.payload));
 
