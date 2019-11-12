@@ -899,21 +899,30 @@ module.exports = function(RED) {
                 res.on('data', (d) => { 
                     if (res.statusCode == 200) {
                         body = body + d;
-                        }
-                    else { 
-                        console.log("Error: getDevices status code: " + res.statusCode); 
-                        console.log("Error: getDevices returned data: " + res.d); } 
-                    });
+                    }
+                    // else { 
+                    //     console.log("Error: getDevices status code: " + res.statusCode); 
+                    //     console.log("Error: getDevices returned data: " + res.d); 
+                    // } 
+                });
 
-                res.on('end', (d) => { 
-                    var devs = JSON.parse(body);
-                    devices[id] = devs; 
+                res.on('end', (d) => {
+                    if (res.statusCode == 200) {
+                        var devs = JSON.parse(body);
+                        devices[id] = devs; 
+                    }
+                    else {
+                        console.log("Error: getDevices status code: " + res.statusCode); 
+                        console.log("Error: getDevices returned data: " + res.d);     
+                        node.warn("Unable to fetch devices for user, HTTP error: " + res.statusCode)                   
+                    }
                 }); 
             });            
 
             req.on('error', (e) => {
                 console.log("Error: getDevices unable to lookup devices for username: " + username);
                 console.log("Error: getDevices returned: " + e);
+                node.warn("Unable to fetch devices for user, error: " + e.message)   
             });
             req.end();
         };
