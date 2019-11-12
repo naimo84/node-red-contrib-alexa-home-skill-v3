@@ -36,7 +36,7 @@ module.exports = function(RED) {
     // Config Node
     function alexaConf(n) {
     	RED.nodes.createNode(this,n);
-        this.username = n.username;
+        this.username = (this.credentials.username || n.username); // enable transition to credential store for username
     	this.password = this.credentials.password;
         this.mqttserver = n.mqttserver;
         this.webapiurl = n.webapiurl;
@@ -237,6 +237,7 @@ module.exports = function(RED) {
     // Re-branded for v3 API
     RED.nodes.registerType("alexa-smart-home-v3-conf",alexaConf,{
         credentials: {
+            username: {type:"text"},
             password: {type:"password"}
         }
     });
@@ -913,8 +914,7 @@ module.exports = function(RED) {
                     }
                     else {
                         console.log("Error: getDevices status code: " + res.statusCode); 
-                        console.log("Error: getDevices returned data: " + res.d);     
-                        node.warn("Unable to fetch devices for user, HTTP error: " + res.statusCode)                   
+                        console.log("Error: getDevices returned data: " + res.d);                 
                     }
                 }); 
             });            
@@ -922,7 +922,6 @@ module.exports = function(RED) {
             req.on('error', (e) => {
                 console.log("Error: getDevices unable to lookup devices for username: " + username);
                 console.log("Error: getDevices returned: " + e);
-                node.warn("Unable to fetch devices for user, error: " + e.message)   
             });
             req.end();
         };
@@ -944,7 +943,7 @@ module.exports = function(RED) {
 
     // Re-branded for v3 API
     RED.httpAdmin.post('/alexa-smart-home-v3/new-account',function(req,res){
-        console.log("httpAdmin post", req.body);
+        //console.log("httpAdmin post", req.body);
     	var username = req.body.user;
         var password = req.body.pass;
         var url = req.body.webapi;
@@ -958,7 +957,7 @@ module.exports = function(RED) {
         var id = req.params.id;
         var conf = RED.nodes.getNode(id);
         if (conf) {
-            var username = conf.username;
+            var username = conf.credentials.username;
             var password = conf.credentials.password;
             var url = conf.webapiurl;
             getDevices(url, username,password,id);
