@@ -1,13 +1,12 @@
-# Node Red Alexa Smart Home
-Integrate Alexa and Google Assistant / Google Home in your Node-RED flows. 
-
 # Features
-* A wide variety of supported device types/ traits (details below)
+* A wide variety of supported device types and capabilities/ traits (details below)
 * Real-time state reporting in the Alexa and Google Home apps.
-* Alexa *and* Google Home support, you can choose to use either, or both (note Google Home integration is currently awaiting certification)
+* Alexa *and* Google Home support, you can choose to use either, or both (note Google Home integration is currently awaiting certification but you can request access)
+
+To enable Google Home/ Google Assistant functionality follow the instructions [here](https://github.com/coldfire84/node-red-alexa-home-skill-v3-web/wiki/Use-the-Hosted-Instance#google-assistant).
 
 # Getting Started
-Using (free to use) hosted instance you can be up and running in just a few minutes:
+Using the (free to use) hosted instance you can be up and running in just a few minutes:
 1. Setup an account [here](https://red.cb-net.co.uk).
 2. Once logged in, create your devices [here](https://red.cb-net.co.uk/devices).
 3. Install and configure these nodes to your Node-RED instance.
