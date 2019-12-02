@@ -522,6 +522,10 @@ module.exports = function(RED) {
                         msg.command = "SetRangeValue";
                         msg.payload = msg.params.openPercent;
                         break;
+                    case "action.devices.commands.SetFanSpeed" :
+                        msg.command = "SetRangeValue";
+                        msg.payload = msg.params.fanSpeed;
+                        break;
                     case "action.devices.commands.setVolume" :
                         if (msg.params.hasOwnProperty('volumeLevel')) {
                             msg.command = "SetVolume";
