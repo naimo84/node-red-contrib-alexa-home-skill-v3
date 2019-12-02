@@ -381,6 +381,10 @@ module.exports = function(RED) {
                         // Color command
                         msg.payload = message.directive.payload.colorTemperatureInKelvin;               
                         break;
+                    case "SetMode":
+                        // SetMode command
+                        msg.payload = message.directive.payload.mode;               
+                        break;   
                     case "SetMute":
                         // Mute command
                         if (message.directive.payload.mute == false) {msg.payload = "OFF"};
@@ -513,6 +517,10 @@ module.exports = function(RED) {
                             msg.command = "TurnOff";
                             msg.payload = "OFF";
                         }
+                        break;
+                    case "action.devices.commands.OpenClose" :
+                        msg.command = "SetRangeValue";
+                        msg.payload = msg.params.openPercent;
                         break;
                     case "action.devices.commands.setVolume" :
                         if (msg.params.hasOwnProperty('volumeLevel')) {
@@ -658,6 +666,7 @@ module.exports = function(RED) {
             else if (msg.command == "SetColor"){msg.payload={"state":{"colorHue": msg.payload.hue,"colorSaturation":msg.payload.saturation,"colorBrightness":msg.payload.brightness}}}
             else if (msg.command == "SetColorTemperature"){msg.payload = {"state":{"colorTemperature":msg.payload}}}
             else if (msg.command == "SelectInput"){msg.payload={"state":{"input":msg.payload}}}
+            else if (msg.command == "SetMode"){msg.payload={"state":{"mode":msg.payload}}}
             else if (msg.command == "SetMute"){msg.payload={"state":{"mute":msg.payload}}}
             else if (msg.command == "SetPercentage"){msg.payload={"state":{"percentage":msg.payload}}}
             else if (msg.command == "SetRangeValue"){msg.payload={"state":{"rangeValue":msg.payload}}}
@@ -674,6 +683,9 @@ module.exports = function(RED) {
                 }
                 else if (msg.command){node.warn(node.name + " state node: message object includes unexpected or invalid msg.command, please remove this from payload: " + msg.command)};
             }
+
+            // Add msg.acknowledge to message if not derived from an Alexa/ Google Home command
+            if (msg.hasOwnProperty('command') == false){msg.acknowledge = true};
 
             // Adjusted to send state update after any Alexa/ Google Home command
             if (msg.hasOwnProperty('command') == false && statelessCommand == false && nodeContext.get('lastPayload') && msg.payload.hasOwnProperty('state')) {
@@ -696,13 +708,12 @@ module.exports = function(RED) {
             } 
             else {
                 nodeContext.set('duplicatePayload', false);
-                nodeContext.set('lastPayload', msg.payload);
+                nodeContext.set('lastPayload', msg.payload);      
             }
 
             // Set State Payload Handler
             if (statelessCommand == false && msg.hasOwnProperty('payload') && msg.payload.hasOwnProperty('state') && msg.hasOwnProperty('acknowledge') && nodeContext.get('duplicatePayload') == false) {
                 // Perform validation of device state payload, expects payload.state to contain as below
-                //     "power": payload.state.power,
                 //     "brightness": payload.state.brightness,
                 //     "colorBrightness": payload.state.colorBrightness,
                 //     "colorHue": payload.state.colorHue,
@@ -711,11 +722,13 @@ module.exports = function(RED) {
                 //     "contact": payload.state.contact,
                 //     "input": payload.state.input,
                 //     "lock": payload.state.lock,
+                //     "mode": payload.state.mode,
                 //     "motion": payload.state.motion,
                 //     "mute": payload.state.mute,
-                //     "playback": payload.state.playback,
                 //     "percentage": payload.state.percentage,
                 //     "percentageDelta": payload.state.percentageDelta,
+                //     "playback": payload.state.playback,
+                //     "power": payload.state.power,
                 //     "rangeValue": payload.state.rangeValue,
                 //     "rangeValueDelta": payload.state.rangeValueDelta,
                 //     "temperature": payload.state.temperature,
@@ -764,6 +777,10 @@ module.exports = function(RED) {
                 // Lock state, expect string, either LOCKED or UNLOCKED
                 if (msg.payload.state.hasOwnProperty('lock')) {
                     if (typeof msg.payload.state.lock != 'string' && (msg.payload.state.lock != "LOCKED" || msg.payload.state.lock != "UNLOCKED")) {stateValid = false};
+                }
+                // Mode state, expect string, no point in specific string checking
+                if (msg.payload.state.hasOwnProperty('mode')) {
+                    if (typeof msg.payload.state.mode != 'string') {stateValid = false};
                 }
                 // Motion Sensor state, expect state to be a string
                 if (msg.payload.state.hasOwnProperty('motion')) {
