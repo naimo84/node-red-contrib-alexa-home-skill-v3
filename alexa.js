@@ -71,12 +71,14 @@ module.exports = function(RED) {
         getDevices(node.webapiurl, node.username, node.password, node.id);
 
         this.connect = function() {
+            node.log("Connecting to Alexa/ Google Home Skill MQTT server: " + node.mqttserver + ", account username: " + node.username);
             node.client = mqtt.connect(options);
             node.client.setMaxListeners(0);
+            
 
             node.client.on('connect', function() {
+                node.log("Successfully connected to Alexa/ Google Home Skill MQTT server: " + node.mqttserver  + ", account username: " + node.username);
                 node.setStatus({text:'connected', shape:'dot', fill:'green'});
-
                 node.client.removeAllListeners('message');
                 node.client.subscribe("command/" + node.username + "/#");
                 node.client.subscribe("message/" + node.username + "/#");
@@ -124,6 +126,7 @@ module.exports = function(RED) {
             });
 
             node.client.on('reconnect', function(){
+                node.warn("Re-connecting to Alexa/ Google Home Skill MQTT server: " + node.mqttserver  + ", account username: " + node.username);
                 node.setStatus({text: 'reconnecting', shape: 'ring', fill:'red'});
             });
 
