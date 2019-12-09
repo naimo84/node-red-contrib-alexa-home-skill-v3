@@ -147,11 +147,11 @@ module.exports = function(RED) {
 
         this.register = function(deviceNode) {
             node.users[deviceNode.id] = deviceNode;
-            // Connect only on first node register/ connect
+            // Object.keys(node.users).length will only === 1 at *first* node registration, thus connect will only execute once
             if (Object.keys(node.users).length === 1) {
-                if (deviceNode.type == "alexa-smart-home-v3") {
+                //if (deviceNode.type == "alexa-smart-home-v3") {
                     node.connect();
-                }
+                //}
             }
         };
 
@@ -889,7 +889,7 @@ module.exports = function(RED) {
 
         node.on('close', function(done){
             node.conf.deregister(node, done);
-            clearInterval(nodeContext.get("timer")); // Close Interval Timer used node contexrt stored Id
+            clearInterval(nodeContext.get("timer")); // Close Interval Timer used node context stored Id
         });
     }
     
