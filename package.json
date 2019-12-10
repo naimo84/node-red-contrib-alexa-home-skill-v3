@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-alexa-smart-home",
-  "version": "0.4.64-alpha.1",
+  "version": "0.4.64",
   "description": "Integrate Alexa and Google Assistant / Google Home in your Node-RED flows.",
   "main": "index.js",
   "scripts": {

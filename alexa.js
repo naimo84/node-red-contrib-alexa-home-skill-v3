@@ -22,7 +22,8 @@ module.exports = function(RED) {
     const https = require('https');
     const tls = require('tls');
     const semver = require('semver');
-    const uuidv4 = require('uuid/v4')
+    const uuidv4 = require('uuid/v4');
+    const packageJson = require('./package.json');
 
     // TODO: Remove after NodeJS fix it, more information
     // https://github.com/nodejs/node/issues/16196
@@ -71,6 +72,8 @@ module.exports = function(RED) {
         getDevices(node.webapiurl, node.username, node.password, node.id);
 
         this.connect = function() {
+            // Log version to console to assist future debugging
+            node.log("Node-RED contrib version: v" + packageJson.version);
             node.log("Connecting to Alexa/ Google Home Skill MQTT server: " + node.mqttserver + ", account username: " + node.username);
             node.client = mqtt.connect(options);
             node.client.setMaxListeners(0);
@@ -149,9 +152,7 @@ module.exports = function(RED) {
             node.users[deviceNode.id] = deviceNode;
             // Object.keys(node.users).length will only === 1 at *first* node registration, thus connect will only execute once
             if (Object.keys(node.users).length === 1) {
-                //if (deviceNode.type == "alexa-smart-home-v3") {
-                    node.connect();
-                //}
+                node.connect();
             }
         };
 
