@@ -30,7 +30,7 @@
 </script>
 
 <script type="text/x-red" data-help-name="alexa-smart-home-v3-conf">
-	<p>If you don't have an account on the bridge create one 
+	<p>If you don't have an account on the bridge create one
     <a target="_blank" href="https://red.cb-net.co.uk">here</a>.</p>
 </script>
 
@@ -88,7 +88,7 @@
 		<label for="node-input-device"><i class="icon-tag"></i> Device</label>
 		<select id="node-input-device">
 		</select>
-        <a id="node-input-device-refresh" class="btn"><i class="fa fa-refresh"></i></a>
+        <a id="node-input-device-refresh" class="red-ui-button"><i class="fa fa-refresh"></i></a>
 	</div>
     <div class="form-row">
         <label>&nbsp;</label>
@@ -105,14 +105,14 @@
 
 <script type="text/x-red" data-help-name="alexa-smart-home-v3">
 	<p>This node provides a Device endpoint for the Alexa/ Google Assistant device bridge.
-    To use this node you will need to create an account and declare some devices 
-    <a target="_blank" href="https://red.cb-net.co.uk">here</a>. 
+    To use this node you will need to create an account and declare some devices
+    <a target="_blank" href="https://red.cb-net.co.uk">here</a>.
     You will also need to link the skill with your Amazon Echo/ Google account</p>
-    <p>Instructions can be found 
+    <p>Instructions can be found
     <a target="_blank" href="https://red.cb-net.co.uk/docs">here</a></p>
-    <p>The <i>Topic</i> field is optional and will be added to any messages sent from 
+    <p>The <i>Topic</i> field is optional and will be added to any messages sent from
     the node.</p>
-    <p>Auto Acknowledge tells Alexa the command suceeded no matter what. If you untick 
+    <p>Auto Acknowledge tells Alexa the command suceeded no matter what. If you untick
     this option you will need to add a <i>Alexa Home Response</i> node to the flow, injecting
     msg.acknowledge into your flow.</p>
 </script>
@@ -169,7 +169,7 @@
                     console.log("problem getting devices");
                     console.log(textStatus);
                 });
-                
+
             }
 
         	if (node.conf) {
@@ -220,7 +220,7 @@
     <label for="node-input-device"><i class="icon-tag"></i> Device</label>
     <select id="node-input-device">
     </select>
-    <a id="node-input-device-refresh" class="btn"><i class="fa fa-refresh"></i></a>
+    <a id="node-input-device-refresh" class="red-ui-button"><i class="fa fa-refresh"></i></a>
 </div>
 <input type="hidden" id="node-input-name">
 </div>
@@ -234,12 +234,12 @@
 msg {
     acknowledge: true,
     payload {
-        state { 
+        state {
             "brightness": 0-100,
             "colorBrightness": 0-1,
             "colorHue": 0-360,
             "colorSaturation": 0-1,
-            "colorTemperature": 0-10000, 
+            "colorTemperature": 0-10000,
             "contact" : "DETECTED" || "NOT_DETECTED",
             "input": string,
             "lock": "LOCKED" || "UNLOCKED",
@@ -312,7 +312,7 @@ msg {
                     console.log("problem getting devices");
                     console.log(textStatus);
                 });
-                
+
             }
 
         	if (node.conf) {
@@ -360,9 +360,9 @@ msg {
 
 <script type="text/x-red" data-help-name="alexa-smart-home-v3-resp">
     <p>This node sends a response to Alexa to acknowledge if the command
-    succeeded or not. To use this node you will need to un check the 
+    succeeded or not. To use this node you will need to un check the
     <i>Auto Acknowledge</i> check box in the Alexa Home node that starts
-    the flow. Responses must be sent with in 2 seconds of 
+    the flow. Responses must be sent with in 2 seconds of
     receiving the request otherwise a timeout message will be returned
     to the Alexa sevice.</p>
     <p>The message must come from the Alexa Home input node and expects msg.acknowledge to be either true or false.</p>
