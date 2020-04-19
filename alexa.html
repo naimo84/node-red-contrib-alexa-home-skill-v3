@@ -25,7 +25,16 @@
     </div>
     <div class="form-row">
         <label for="node-config-input-webapiurl"><i class="icon-tag"></i> Web API Hostname</label>
-    <input type="text" id="node-config-input-webapiurl">
+        <input type="text" id="node-config-input-webapiurl">
+    </div>
+    <div class="form-row" title="Select the context store to be used for timer">
+        <label for="node-config-input-contextName"><i class="icon-tag"></i> Context Store</label>
+        <select id="node-config-input-contextName"></select>
+        <div id="contextName-hint"></div>
+        <br />
+        <div class="form-tips">
+            This node requires a memory-based context store.
+        </div>
     </div>
 </script>
 
@@ -41,7 +50,8 @@
         defaults: {
             username: {},
             mqttserver: {value:"mq-red.cb-net.co.uk"},
-            webapiurl: {value:"red.cb-net.co.uk"}
+            webapiurl: {value:"red.cb-net.co.uk"},
+            contextName: {value: 'default'}
         },
         credentials: {
             username: {type:"text"},
@@ -56,8 +66,8 @@
         	var user = $('#node-config-input-username').val();
             var pass = $('#node-config-input-password').val();
             var mqttserver = $('#node-config-input-mqttserver').val();
-            // ## Modified, removed https:// + API path
             var webapiurl = $('#node-config-input-webapiurl').val();
+            console.log('***** saving context store: ' + $('#node-config-input-contextName').val());
             console.log("pass: ", pass);
         	if (pass != '_PWD_') {
         		var account = {
@@ -75,6 +85,19 @@
         			processData: false
         		});
         	}
+        },
+        oneditprepare: function(){
+            var node = this;
+            var contextName = node.contextName || undefined;
+            console.log('***** settings: ' + JSON.stringify(RED.settings));
+            for (let store of RED.settings.context.stores) {
+                console.log('***** adding store: ' + store);
+                $('<option/>',{
+                    value: store,
+                    text: store
+                    }).appendTo('#node-config-input-contextName');
+            }
+            if (contextName != 'default' && contextName != undefined) $('#node-config-input-contextName').val(node.contextName).change();
         }
     });
 </script>
@@ -112,7 +135,7 @@
     <a target="_blank" href="https://red.cb-net.co.uk/docs">here</a></p>
     <p>The <i>Topic</i> field is optional and will be added to any messages sent from
     the node.</p>
-    <p>Auto Acknowledge tells Alexa the command suceeded no matter what. If you untick
+    <p>Auto Acknowledge tells Alexa the command succeeded no matter what. If you un-tick
     this option you will need to add a <i>Alexa Home Response</i> node to the flow, injecting
     msg.acknowledge into your flow.</p>
 </script>
@@ -321,7 +344,7 @@ msg {
         		if (account != '_ADD_') {
 	        		getDevs(account);
         		}
-        	}
+            }
 
         	$('#node-input-conf').change(function(){
         		var account = $('#node-input-conf').val();
@@ -364,7 +387,7 @@ msg {
     <i>Auto Acknowledge</i> check box in the Alexa Home node that starts
     the flow. Responses must be sent with in 2 seconds of
     receiving the request otherwise a timeout message will be returned
-    to the Alexa sevice.</p>
+    to the Alexa service.</p>
     <p>The message must come from the Alexa Home input node and expects msg.acknowledge to be either true or false.</p>
 </script>
 

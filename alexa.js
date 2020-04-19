@@ -41,9 +41,10 @@ module.exports = function(RED) {
     	this.password = this.credentials.password;
         this.mqttserver = n.mqttserver;
         this.webapiurl = n.webapiurl;
+        this.contextName = n.contextName || 'memory'; // enable transition to user-configurable context storage
         this.users = {};
     	var node = this;
-
+        console.log('***** config register contextName: ' + n.contextName);
         // MQTT connect options
         var clientId = uuidv4(); // Generate UUID for use in clientId - clientId limit for Mosquitto is 65535 bytes
         var options = {
@@ -66,9 +67,6 @@ module.exports = function(RED) {
             ]
         };
 
-        // mqttserver: node.mqttserver,
-        // webapiurl: node.webapiurl,
-        // ## modified to include webapiurl
         getDevices(node.webapiurl, node.username, node.password, node.id);
 
         this.connect = function() {
@@ -77,7 +75,7 @@ module.exports = function(RED) {
             node.log("Connecting to Alexa/ Google Home Skill MQTT server: " + node.mqttserver + ", account username: " + node.username);
             node.client = mqtt.connect(options);
             node.client.setMaxListeners(0);
-            
+
 
             node.client.on('connect', function() {
                 node.log("Successfully connected to Alexa/ Google Home Skill MQTT server: " + node.mqttserver  + ", account username: " + node.username);
@@ -109,7 +107,7 @@ module.exports = function(RED) {
                             //console.log("info", "Received Google Home MQTT message");
                             var endpointId = (msg.id);
                         }
-                        
+
                         for (var id in node.users) {
                             if (node.users.hasOwnProperty(id)){
                                 if (node.users[id].device === endpointId && node.users[id].type == "alexa-smart-home-v3") {
@@ -186,7 +184,7 @@ module.exports = function(RED) {
             }
         };
 
-        // ########################################################## 
+        // ##########################################################
         // Config Node Update State
         this.updateState = function(messageId, endpointId, payload, deviceName) {
 
@@ -222,7 +220,7 @@ module.exports = function(RED) {
 
             var topic = 'state/' + node.username + '/' + endpointId;
             node.log(deviceName + " : sending state update, topic:" + topic + " message:" + JSON.stringify(response));
-            
+
             if (node.client && node.client.connected) {
                 node.client.publish(topic, JSON.stringify(response));
             }
@@ -258,7 +256,7 @@ module.exports = function(RED) {
         this.type = n.type;
 
     	var node = this;
-        
+
         // Command Node Command Function
         node.command = function (message){
             //console.log("message", message)
@@ -303,7 +301,7 @@ module.exports = function(RED) {
 
             // Alexa Message Handler
             if (messageFormat == "Alexa") {
-                if (message.directive.header.hasOwnProperty('messageId')){messageId = message.directive.header.messageId};               
+                if (message.directive.header.hasOwnProperty('messageId')){messageId = message.directive.header.messageId};
                 switch(message.directive.header.name){
                     case "Activate":
                         // Scene Controller
@@ -315,12 +313,12 @@ module.exports = function(RED) {
                         break;
                     case "AdjustPercentage":
                         // Percentage Controller command
-                        msg.payload = message.directive.payload.percentageDelta;               
+                        msg.payload = message.directive.payload.percentageDelta;
                         break;
                     case "AdjustRangeValue":
                         // Range Controller command
-                        msg.payload = message.directive.payload.rangeValueDelta;               
-                        break;                    
+                        msg.payload = message.directive.payload.rangeValueDelta;
+                        break;
                     case "AdjustTargetTemperature":
                         // Thermostat command
                         msg.payload = message.directive.payload.targetSetpointDelta.value;
@@ -343,32 +341,32 @@ module.exports = function(RED) {
                         break;
                     case "FastForward":
                         // FastForward command
-                        msg.payload = "FastForward";               
-                        break; 
+                        msg.payload = "FastForward";
+                        break;
                     case "Lock":
                         // Lock command
-                        msg.payload = "Lock";               
+                        msg.payload = "Lock";
                         break;
                     case "Next":
                         // Next command
-                        msg.payload = "Next";               
-                        break;    
+                        msg.payload = "Next";
+                        break;
                     case "Pause":
                         // Pause command
-                        msg.payload = "Pause";               
-                        break;    
+                        msg.payload = "Pause";
+                        break;
                     case "Play":
                         // Play command
-                        msg.payload = "Play";               
+                        msg.payload = "Play";
                         break;
                     case "Previous":
                         // Previous command
-                        msg.payload = "Previous";               
+                        msg.payload = "Previous";
                         break;
                     case "Rewind":
                         // Rewind command
-                        msg.payload = "Rewind";               
-                        break;                            
+                        msg.payload = "Rewind";
+                        break;
                     case "SelectInput":
                         // Select input command
                         msg.payload = message.directive.payload.input;
@@ -379,16 +377,16 @@ module.exports = function(RED) {
                         break;
                     case "SetColor":
                         // Color command
-                        msg.payload = message.directive.payload.color;               
+                        msg.payload = message.directive.payload.color;
                         break;
                     case "SetColorTemperature":
                         // Color command
-                        msg.payload = message.directive.payload.colorTemperatureInKelvin;               
+                        msg.payload = message.directive.payload.colorTemperatureInKelvin;
                         break;
                     case "SetMode":
                         // SetMode command
-                        msg.payload = message.directive.payload.mode;               
-                        break;   
+                        msg.payload = message.directive.payload.mode;
+                        break;
                     case "SetMute":
                         // Mute command
                         if (message.directive.payload.mute == false) {msg.payload = "OFF"};
@@ -396,11 +394,11 @@ module.exports = function(RED) {
                         break;
                     case "SetPercentage":
                         // Percentage Controller  command
-                        msg.payload = message.directive.payload.percentage;               
+                        msg.payload = message.directive.payload.percentage;
                         break;
                     case "SetRangeValue":
                         // Range Controller  command
-                        msg.payload = message.directive.payload.rangeValue;               
+                        msg.payload = message.directive.payload.rangeValue;
                         break;
                     case "SetTargetTemperature":
                         // Thermostat command
@@ -409,20 +407,20 @@ module.exports = function(RED) {
                         break;
                     case "SetThermostatMode":
                         // Thermostat command
-                        msg.payload = message.directive.payload.thermostatMode.value;               
+                        msg.payload = message.directive.payload.thermostatMode.value;
                         break;
                     case "SetVolume":
                         // Speaker command
-                        msg.payload = message.directive.payload.volume;               
+                        msg.payload = message.directive.payload.volume;
                         break;
                     case "StartOver":
                         // StartOver command
-                        msg.payload = "StartOver";               
-                        break;     
+                        msg.payload = "StartOver";
+                        break;
                     case "Stop":
                         // Stop command
-                        msg.payload = "Stop";               
-                        break;     
+                        msg.payload = "Stop";
+                        break;
                     case "TurnOn":
                         // Power-on command
                         msg.payload = "ON";
@@ -433,7 +431,7 @@ module.exports = function(RED) {
                         break;
                     case "Unlock":
                         // Unlock command
-                        msg.payload = "Unlock";               
+                        msg.payload = "Unlock";
                         break;
                     default:
                         // Do not handle unsupported commands
@@ -460,7 +458,7 @@ module.exports = function(RED) {
                     case "action.devices.commands.ColorAbsolute":
                         if (msg.params.color.hasOwnProperty('temperature')) {
                             msg.command = "SetColorTemperature";
-                            msg.payload = msg.params.color.temperature;     
+                            msg.payload = msg.params.color.temperature;
                         }
                         if (msg.params.color.hasOwnProperty('spectrumHSV')) {
                             msg.command = "SetColor";
@@ -469,17 +467,19 @@ module.exports = function(RED) {
                                 saturation: msg.params.color.spectrumHSV.saturation,
                                 brightness: msg.params.color.spectrumHSV.value
                             }
-                        }   
+                        }
                         break;
                     case "action.devices.commands.LockUnlock" :
                         if (msg.params.hasOwnProperty('lock')) {
                             if (msg.params.lock == true){
                                 msg.command = "Lock";
                                 delete msg.payload;
+                                msg.payload = "Lock";
                             }
                             else {
                                 msg.command = "Unlock";
                                 delete msg.payload;
+                                msg.payload = "Unlock";
                             }
                         }
                         break;
@@ -615,35 +615,39 @@ module.exports = function(RED) {
         var nodeContext = this.context();
         var node = this;
         var onGoingCommands = {};
+
+        console.log('***** config.contextName: ' + JSON.stringify(node.conf.contextName));
+        node.contextName = node.conf.contextName || 'default' // set to 'default' where config will be missing this on update for existing users
+
         // Timer to rate limit messages
-        var timer = setInterval(function() {    
+        var timer = setInterval(function() {
             var now = Date.now();
             var keys = Object.keys(onGoingCommands);
             var key;
-            nodeContext.set('tmpCommand',""); 
-            nodeContext.set('tmpKey',"");
+            nodeContext.set('tmpCommand',"",node.contextName);
+            nodeContext.set('tmpKey',"",node.contextName);
             for (key in keys){
                 var stateUpdate= onGoingCommands[keys[key]];
                 if (stateUpdate) {
-                    if (!nodeContext.get('tmpCommand') || nodeContext.get('tmpCommand') == "") { // Capture first state update
-                        nodeContext.set('tmpCommand',onGoingCommands[keys[key]]);
-                        nodeContext.set('tmpKey',key);
+                    if (!nodeContext.get('tmpCommand',node.contextName) || nodeContext.get('tmpCommand',node.contextName) == "") { // Capture first state update
+                        nodeContext.set('tmpCommand',onGoingCommands[keys[key]],node.contextName);
+                        nodeContext.set('tmpKey',key,node.contextName);
                     }
                     else { // If newer command same as previous, delete previous
                         //console.log("debug, Timer GET stateUpdate keys:" + Object.keys(stateUpdate.payload.state));
-                        //console.log("debug, Timer GET tmpCommand keys:" + Object.keys(nodeContext.get('tmpCommand').payload.state));
-                        
-                        // if (Object.keys(stateUpdate.payload.state).toString() == Object.keys(nodeContext.get('tmpCommand').payload.state).toString() && stateUpdate.messageId != nodeContext.get('tmpCommand').messageId) {
-                        if (Object.keys(stateUpdate.payload.state).toString() == Object.keys(nodeContext.get('tmpCommand').payload.state).toString()) {
-                            node.log("Timer throttled/ deleted state update: " + keys[nodeContext.get('tmpKey')]);
-                            delete onGoingCommands[keys[nodeContext.get('tmpKey')]];
-                            nodeContext.set('tmpCommand',onGoingCommands[keys[key]]); 
-                            nodeContext.set('tmpKey',key);
+                        //console.log("debug, Timer GET tmpCommand keys:" + Object.keys(nodeContext.get('tmpCommand',node.contextName).payload.state));
+
+                        // if (Object.keys(stateUpdate.payload.state).toString() == Object.keys(nodeContext.get('tmpCommand',node.contextName).payload.state).toString() && stateUpdate.messageId != nodeContext.get('tmpCommand',node.contextName).messageId) {
+                        if (Object.keys(stateUpdate.payload.state).toString() == Object.keys(nodeContext.get('tmpCommand',node.contextName).payload.state).toString()) {
+                            node.log("Timer throttled/ deleted state update: " + keys[nodeContext.get('tmpKey',node.contextName)]);
+                            delete onGoingCommands[keys[nodeContext.get('tmpKey',node.contextName)]];
+                            nodeContext.set('tmpCommand',onGoingCommands[keys[key]],node.contextName);
+                            nodeContext.set('tmpKey',key,node.contextName);
                         }
                         else {
                             //console.log("debug, Timer No match of object keys");
-                            nodeContext.set('tmpCommand',onGoingCommands[keys[key]]);
-                            nodeContext.set('tmpKey',key);
+                            nodeContext.set('tmpCommand',onGoingCommands[keys[key]],node.contextName);
+                            nodeContext.set('tmpKey',key,node.contextName);
                         }
                     }
                     var diff = now - stateUpdate.timestamp;
@@ -656,9 +660,9 @@ module.exports = function(RED) {
             }
         }, 250); // 250 Millisecond Timer
 
-        // Store timer Id in node content 
-        nodeContext.set("timer",timer);
-        
+        // Store timer Id in node content
+        nodeContext.set("timer",timer,node.contextName);
+
         // Set State Node On Input Function
         node.on('input',function(msg){
             // State update could be for any state(s), validate the state message falls within expected params
@@ -696,31 +700,31 @@ module.exports = function(RED) {
             if (msg.hasOwnProperty('command') == false){msg.acknowledge = true};
 
             // Adjusted to send state update after any Alexa/ Google Home command
-            if (msg.hasOwnProperty('command') == false && statelessCommand == false && nodeContext.get('lastPayload') && msg.payload.hasOwnProperty('state')) {
-                //console.log("debug, ON Message, lastpayload: " + JSON.stringify(nodeContext.get('lastPayload')));
+            if (msg.hasOwnProperty('command') == false && statelessCommand == false && nodeContext.get('lastPayload',node.contextName) && msg.payload.hasOwnProperty('state',node.contextName)) {
+                //console.log("debug, ON Message, lastpayload: " + JSON.stringify(nodeContext.get('lastPayload',node.contextName)));
                 //console.log("debug, ON Message, msg.payload: " + JSON.stringify(msg.payload));
 
                 // Duplicate Payload to last payload received, discard unless an adjustment payload which is likely to be duplicate
-                if (JSON.stringify(nodeContext.get('lastPayload')) == JSON.stringify(msg.payload)
-                 && !(msg.payload.state.hasOwnProperty('percentageDelta') 
-                    || msg.payload.state.hasOwnProperty('targetSetpointDelta') 
+                if (JSON.stringify(nodeContext.get('lastPayload',node.contextName)) == JSON.stringify(msg.payload)
+                && !(msg.payload.state.hasOwnProperty('percentageDelta')
+                    || msg.payload.state.hasOwnProperty('targetSetpointDelta')
                     || msg.payload.state.hasOwnProperty('volumeDelta'))) {
 
-                    nodeContext.set('duplicatePayload', true);
+                    nodeContext.set('duplicatePayload', true,node.contextName);
                 }
                 // Non-duplicate payload. send to Web API
                 else {
-                    nodeContext.set('duplicatePayload', false);
-                    nodeContext.set('lastPayload',msg.payload);
+                    nodeContext.set('duplicatePayload', false,node.contextName);
+                    nodeContext.set('lastPayload',msg.payload,node.contextName);
                 }
-            } 
+            }
             else {
-                nodeContext.set('duplicatePayload', false);
-                nodeContext.set('lastPayload', msg.payload);      
+                nodeContext.set('duplicatePayload', false,node.contextName);
+                nodeContext.set('lastPayload', msg.payload,node.contextName);
             }
 
             // Set State Payload Handler
-            if (statelessCommand == false && msg.hasOwnProperty('payload') && msg.payload.hasOwnProperty('state') && msg.hasOwnProperty('acknowledge') && nodeContext.get('duplicatePayload') == false) {
+            if (statelessCommand == false && msg.hasOwnProperty('payload') && msg.payload.hasOwnProperty('state') && msg.hasOwnProperty('acknowledge') && nodeContext.get('duplicatePayload',node.contextName) == false) {
                 // Perform validation of device state payload, expects payload.state to contain as below
                 //     "brightness": payload.state.brightness,
                 //     "colorBrightness": payload.state.colorBrightness,
@@ -754,7 +758,7 @@ module.exports = function(RED) {
                 }
 
                 // If *both* color and colorTemperature state sent, warn and do not send
-                if ((msg.payload.state.hasOwnProperty('colorHue') && msg.payload.state.hasOwnProperty('colorSaturation') && msg.payload.state.hasOwnProperty('colorBrightness')) 
+                if ((msg.payload.state.hasOwnProperty('colorHue') && msg.payload.state.hasOwnProperty('colorSaturation') && msg.payload.state.hasOwnProperty('colorBrightness'))
                 && msg.payload.state.hasOwnProperty('colorTemperature')) {
                     node.warn(node.name + " state node: you cannot send combined 'colorTemperatrure' and 'color' state updates, send most recent update/ change only");
                     stateValid = false;
@@ -793,7 +797,7 @@ module.exports = function(RED) {
                 // Motion Sensor state, expect state to be a string
                 if (msg.payload.state.hasOwnProperty('motion')) {
                     if (typeof msg.payload.state.motion != 'string'  && (msg.payload.state.motion != "DETECTED" || msg.payload.state.motion != "NOT_DETECTED")) {stateValid = false};
-                }                
+                }
                 // Mute state, expect string, either ON or OFF
                 if (msg.payload.state.hasOwnProperty('mute')) {
                     if (typeof msg.payload.state.mute != 'string' && (msg.payload.state.mute != "ON" || msg.payload.state.mute != "OFF")) {stateValid = false}
@@ -815,13 +819,13 @@ module.exports = function(RED) {
                     if (typeof msg.payload.state.power != 'string' && (msg.payload.state.power != 'ON' || msg.payload.state.power != 'OFF')) {stateValid = false};
                 }
                 // Range value, expect number
-				if (msg.payload.state.hasOwnProperty('rangeValue')) {
-					if (typeof msg.payload.state.rangeValue != 'number'){stateValid = false};
-				};
+                if (msg.payload.state.hasOwnProperty('rangeValue')) {
+                    if (typeof msg.payload.state.rangeValue != 'number'){stateValid = false};
+                };
                 // Range value delta, expect number
-				if (msg.payload.state.hasOwnProperty('rangeValueDelta')) {
-					if (typeof msg.payload.state.rangeValueDelta != 'number'){stateValid = false};
-				};
+                if (msg.payload.state.hasOwnProperty('rangeValueDelta')) {
+                    if (typeof msg.payload.state.rangeValueDelta != 'number'){stateValid = false};
+                };
                 // Temperature sensor state, expect state to be a number
                 if (msg.payload.state.hasOwnProperty('temperature')) {
                     if (typeof msg.payload.state.temperature != 'number') {stateValid = false};
@@ -868,19 +872,19 @@ module.exports = function(RED) {
                 }
             }
             // Payload missing
-            else if (statelessCommand == false && !msg.hasOwnProperty('payload')) { 
+            else if (statelessCommand == false && !msg.hasOwnProperty('payload')) {
                 node.warn(node.name + " state node: msg.payload missing!");
-            }            
+            }
             // State missing
-            else if (statelessCommand == false && !msg.payload.hasOwnProperty('state')) { 
+            else if (statelessCommand == false && !msg.payload.hasOwnProperty('state')) {
                 node.warn(node.name + " state node: msg.payload missing state element!");
             }
             // Acknowledge missing
-            else if (statelessCommand == false && !msg.hasOwnProperty('acknowledge')) { 
+            else if (statelessCommand == false && !msg.hasOwnProperty('acknowledge')) {
                 node.warn(node.name + " state node: message missing msg.acknowledge");
             }
             // Duplicate State Update
-            else if (nodeContext.get('duplicatePayload') == true) { 
+            else if (nodeContext.get('duplicatePayload',node.contextName) == true) {
                 node.log(node.name + " state node: discarded duplicate state payload");
             }
         });
@@ -890,10 +894,11 @@ module.exports = function(RED) {
 
         node.on('close', function(done){
             node.conf.deregister(node, done);
-            clearInterval(nodeContext.get("timer")); // Close Interval Timer used node context stored Id
+            clearInterval(nodeContext.get("timer",node.contextName)); // Close Interval Timer used node context stored Id
         });
+
     }
-    
+
     // ##########################################################
 
     // Re-branded for v3 API
@@ -917,32 +922,32 @@ module.exports = function(RED) {
                 method: 'GET',
                 auth: username +":"+ password
               };
-                    
-            const req = https.request(options, (res) => { 
-                //console.log('statusCode:', res.statusCode); 
-                //console.log('headers:', res.headers); 
-                var body='' 
-                res.on('data', (d) => { 
+
+            const req = https.request(options, (res) => {
+                //console.log('statusCode:', res.statusCode);
+                //console.log('headers:', res.headers);
+                var body=''
+                res.on('data', (d) => {
                     if (res.statusCode == 200) {
                         body = body + d;
                     }
-                    // else { 
-                    //     console.log("Error: getDevices status code: " + res.statusCode); 
-                    //     console.log("Error: getDevices returned data: " + res.d); 
-                    // } 
+                    // else {
+                    //     console.log("Error: getDevices status code: " + res.statusCode);
+                    //     console.log("Error: getDevices returned data: " + res.d);
+                    // }
                 });
 
                 res.on('end', (d) => {
                     if (res.statusCode == 200) {
                         var devs = JSON.parse(body);
-                        devices[id] = devs; 
+                        devices[id] = devs;
                     }
                     else {
-                        console.log("Error: getDevices status code: " + res.statusCode); 
-                        console.log("Error: getDevices returned data: " + res.d);                 
+                        console.log("Error: getDevices status code: " + res.statusCode);
+                        console.log("Error: getDevices returned data: " + res.d);
                     }
-                }); 
-            });            
+                });
+            });
 
             req.on('error', (e) => {
                 console.log("Error: getDevices unable to lookup devices for username: " + username);
@@ -957,7 +962,7 @@ module.exports = function(RED) {
         var uuid = "", i, random;
         for (i = 0; i < 32; i++) {
           random = Math.random() * 16 | 0;
-      
+
           if (i == 8 || i == 12 || i == 16 || i == 20) {
             uuid += "-"
           }
