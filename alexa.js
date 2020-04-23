@@ -22,7 +22,7 @@ module.exports = function(RED) {
     const https = require('https');
     const tls = require('tls');
     const semver = require('semver');
-    const uuidv4 = require('uuid/v4');
+    const { v4: uuidv4 } = require('uuid');
     const packageJson = require('./package.json');
 
     // TODO: Remove after NodeJS fix it, more information
@@ -44,7 +44,7 @@ module.exports = function(RED) {
         this.contextName = n.contextName || 'memory'; // enable transition to user-configurable context storage
         this.users = {};
     	var node = this;
-        console.log('***** config register contextName: ' + n.contextName);
+        // console.log('***** received contextName: ' + n.contextName);
         // MQTT connect options
         var clientId = uuidv4(); // Generate UUID for use in clientId - clientId limit for Mosquitto is 65535 bytes
         var options = {
@@ -616,8 +616,8 @@ module.exports = function(RED) {
         var node = this;
         var onGoingCommands = {};
 
-        console.log('***** config.contextName: ' + JSON.stringify(node.conf.contextName));
-        node.contextName = node.conf.contextName || 'default' // set to 'default' where config will be missing this on update for existing users
+        // console.log('***** config.contextName: ' + JSON.stringify(node.conf.contextName));
+        node.contextName = node.conf.contextName || 'memory' // set to 'memory' where config will be missing this on update for existing users
 
         // Timer to rate limit messages
         var timer = setInterval(function() {
@@ -885,7 +885,7 @@ module.exports = function(RED) {
             }
             // Duplicate State Update
             else if (nodeContext.get('duplicatePayload',node.contextName) == true) {
-                node.log(node.name + " state node: discarded duplicate state payload");
+                // node.log(node.name + " state node: discarded duplicate state payload");
             }
         });
 

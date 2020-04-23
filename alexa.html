@@ -12,28 +12,28 @@
 -->
 <script type="text/x-red" data-template-name="alexa-smart-home-v3-conf">
     <div class="form-row">
-	    <label for="node-config-input-username"><i class="icon-tag"></i> Username</label>
+	    <label for="node-config-input-username" style="width:130px"><i class="icon-tag"></i> Username</label>
 	    <input type="text" id="node-config-input-username">
 	</div>
 	<div class="form-row">
-	   	<label for="node-config-input-password"><i class="icon-tag"></i> Password</label>
+	   	<label for="node-config-input-password" style="width:130px"><i class="icon-tag"></i> Password</label>
 	    <input type="password" id="node-config-input-password">
     </div>
     <div class="form-row">
-        <label for="node-config-input-mqttserver"><i class="icon-tag"></i> MQTT Hostname</label>
-     <input type="text" id="node-config-input-mqttserver">
+        <label for="node-config-input-mqttserver" style="width:130px"><i class="icon-tag"></i> MQTT Hostname</label>
+        <input type="text" id="node-config-input-mqttserver">
     </div>
     <div class="form-row">
-        <label for="node-config-input-webapiurl"><i class="icon-tag"></i> Web API Hostname</label>
+        <label for="node-config-input-webapiurl" style="width:130px"><i class="icon-tag"></i> Web API Hostname</label>
         <input type="text" id="node-config-input-webapiurl">
     </div>
-    <div class="form-row" title="Select the context store to be used for timer">
-        <label for="node-config-input-contextName"><i class="icon-tag"></i> Context Store</label>
+    <div class="form-row" title="Select the Node-RED context store to use with this Node.">
+        <label for="node-config-input-contextName" style="width:130px"><i class="icon-tag"></i> Context Store</label>
         <select id="node-config-input-contextName"></select>
         <div id="contextName-hint"></div>
         <br />
         <div class="form-tips">
-            This node requires a memory-based context store.
+            This node requires a Node-RED memory-based <a href='https://nodered.org/docs/user-guide/context' target="_blank">context store</a>.
         </div>
     </div>
 </script>
@@ -67,7 +67,7 @@
             var pass = $('#node-config-input-password').val();
             var mqttserver = $('#node-config-input-mqttserver').val();
             var webapiurl = $('#node-config-input-webapiurl').val();
-            console.log('***** saving context store: ' + $('#node-config-input-contextName').val());
+            // console.log('***** saving context store: ' + $('#node-config-input-contextName').val());
             console.log("pass: ", pass);
         	if (pass != '_PWD_') {
         		var account = {
@@ -89,9 +89,9 @@
         oneditprepare: function(){
             var node = this;
             var contextName = node.contextName || undefined;
-            console.log('***** settings: ' + JSON.stringify(RED.settings));
+            // console.log('***** settings: ' + JSON.stringify(RED.settings));
             for (let store of RED.settings.context.stores) {
-                console.log('***** adding store: ' + store);
+                // console.log('***** adding store: ' + store);
                 $('<option/>',{
                     value: store,
                     text: store
