@@ -22,7 +22,7 @@ module.exports = function (RED) {
   const https = require("https");
   const tls = require("tls");
   const semver = require("semver");
-  const uuidv4 = require("uuid/v4");
+  const { v4: uuidv4 } = require("uuid");
   const packageJson = require("./package.json");
 
   // TODO: Remove after NodeJS fix it, more information
@@ -44,9 +44,10 @@ module.exports = function (RED) {
     this.password = this.credentials.password;
     this.mqttserver = n.mqttserver;
     this.webapiurl = n.webapiurl;
+    this.contextName = n.contextName || "memory"; // enable transition to user-configurable context storage
     this.users = {};
     var node = this;
-
+    // console.log('***** received contextName: ' + n.contextName);
     // MQTT connect options
     var clientId = uuidv4(); // Generate UUID for use in clientId - clientId limit for Mosquitto is 65535 bytes
     var options = {
@@ -69,9 +70,6 @@ module.exports = function (RED) {
       ],
     };
 
-    // mqttserver: node.mqttserver,
-    // webapiurl: node.webapiurl,
-    // ## modified to include webapiurl
     getDevices(node.webapiurl, node.username, node.password, node.id);
 
     this.connect = function () {
@@ -426,7 +424,7 @@ module.exports = function (RED) {
             msg.payload = message.directive.payload.color;
             break;
           case "SetColorTemperature":
-            // Color Temperature command
+            // Color command
             msg.payload = message.directive.payload.colorTemperatureInKelvin;
             break;
           case "SetMode":
@@ -527,9 +525,11 @@ module.exports = function (RED) {
               if (msg.params.lock == true) {
                 msg.command = "Lock";
                 delete msg.payload;
+                msg.payload = "Lock";
               } else {
                 msg.command = "Unlock";
                 delete msg.payload;
+                msg.payload = "Unlock";
               }
             }
             break;
@@ -675,46 +675,64 @@ module.exports = function (RED) {
     var nodeContext = this.context();
     var node = this;
     var onGoingCommands = {};
+
+    // console.log('***** config.contextName: ' + JSON.stringify(node.conf.contextName));
+    node.contextName = node.conf.contextName || "memory"; // set to 'memory' where config will be missing this on update for existing users
+
     // Timer to rate limit messages
     var timer = setInterval(function () {
       var now = Date.now();
       var keys = Object.keys(onGoingCommands);
       var key;
-      nodeContext.set("tmpCommand", "");
-      nodeContext.set("tmpKey", "");
+      nodeContext.set("tmpCommand", "", node.contextName);
+      nodeContext.set("tmpKey", "", node.contextName);
       for (key in keys) {
         var stateUpdate = onGoingCommands[keys[key]];
         if (stateUpdate) {
           if (
-            !nodeContext.get("tmpCommand") ||
-            nodeContext.get("tmpCommand") == ""
+            !nodeContext.get("tmpCommand", node.contextName) ||
+            nodeContext.get("tmpCommand", node.contextName) == ""
           ) {
             // Capture first state update
-            nodeContext.set("tmpCommand", onGoingCommands[keys[key]]);
-            nodeContext.set("tmpKey", key);
+            nodeContext.set(
+              "tmpCommand",
+              onGoingCommands[keys[key]],
+              node.contextName
+            );
+            nodeContext.set("tmpKey", key, node.contextName);
           } else {
             // If newer command same as previous, delete previous
             //console.log("debug, Timer GET stateUpdate keys:" + Object.keys(stateUpdate.payload.state));
-            //console.log("debug, Timer GET tmpCommand keys:" + Object.keys(nodeContext.get('tmpCommand').payload.state));
+            //console.log("debug, Timer GET tmpCommand keys:" + Object.keys(nodeContext.get('tmpCommand',node.contextName).payload.state));
 
-            // if (Object.keys(stateUpdate.payload.state).toString() == Object.keys(nodeContext.get('tmpCommand').payload.state).toString() && stateUpdate.messageId != nodeContext.get('tmpCommand').messageId) {
+            // if (Object.keys(stateUpdate.payload.state).toString() == Object.keys(nodeContext.get('tmpCommand',node.contextName).payload.state).toString() && stateUpdate.messageId != nodeContext.get('tmpCommand',node.contextName).messageId) {
             if (
               Object.keys(stateUpdate.payload.state).toString() ==
               Object.keys(
-                nodeContext.get("tmpCommand").payload.state
+                nodeContext.get("tmpCommand", node.contextName).payload.state
               ).toString()
             ) {
               node.log(
                 "Timer throttled/ deleted state update: " +
-                  keys[nodeContext.get("tmpKey")]
+                  keys[nodeContext.get("tmpKey", node.contextName)]
               );
-              delete onGoingCommands[keys[nodeContext.get("tmpKey")]];
-              nodeContext.set("tmpCommand", onGoingCommands[keys[key]]);
-              nodeContext.set("tmpKey", key);
+              delete onGoingCommands[
+                keys[nodeContext.get("tmpKey", node.contextName)]
+              ];
+              nodeContext.set(
+                "tmpCommand",
+                onGoingCommands[keys[key]],
+                node.contextName
+              );
+              nodeContext.set("tmpKey", key, node.contextName);
             } else {
               //console.log("debug, Timer No match of object keys");
-              nodeContext.set("tmpCommand", onGoingCommands[keys[key]]);
-              nodeContext.set("tmpKey", key);
+              nodeContext.set(
+                "tmpCommand",
+                onGoingCommands[keys[key]],
+                node.contextName
+              );
+              nodeContext.set("tmpKey", key, node.contextName);
             }
           }
           var diff = now - stateUpdate.timestamp;
@@ -733,7 +751,7 @@ module.exports = function (RED) {
     }, 250); // 250 Millisecond Timer
 
     // Store timer Id in node content
-    nodeContext.set("timer", timer);
+    nodeContext.set("timer", timer, node.contextName);
 
     // Set State Node On Input Function
     node.on("input", function (msg) {
@@ -818,15 +836,15 @@ module.exports = function (RED) {
       if (
         msg.hasOwnProperty("command") == false &&
         statelessCommand == false &&
-        nodeContext.get("lastPayload") &&
-        msg.payload.hasOwnProperty("state")
+        nodeContext.get("lastPayload", node.contextName) &&
+        msg.payload.hasOwnProperty("state", node.contextName)
       ) {
-        //console.log("debug, ON Message, lastpayload: " + JSON.stringify(nodeContext.get('lastPayload')));
+        //console.log("debug, ON Message, lastpayload: " + JSON.stringify(nodeContext.get('lastPayload',node.contextName)));
         //console.log("debug, ON Message, msg.payload: " + JSON.stringify(msg.payload));
 
         // Duplicate Payload to last payload received, discard unless an adjustment payload which is likely to be duplicate
         if (
-          JSON.stringify(nodeContext.get("lastPayload")) ==
+          JSON.stringify(nodeContext.get("lastPayload", node.contextName)) ==
             JSON.stringify(msg.payload) &&
           !(
             msg.payload.state.hasOwnProperty("percentageDelta") ||
@@ -834,16 +852,16 @@ module.exports = function (RED) {
             msg.payload.state.hasOwnProperty("volumeDelta")
           )
         ) {
-          nodeContext.set("duplicatePayload", true);
+          nodeContext.set("duplicatePayload", true, node.contextName);
         }
         // Non-duplicate payload. send to Web API
         else {
-          nodeContext.set("duplicatePayload", false);
-          nodeContext.set("lastPayload", msg.payload);
+          nodeContext.set("duplicatePayload", false, node.contextName);
+          nodeContext.set("lastPayload", msg.payload, node.contextName);
         }
       } else {
-        nodeContext.set("duplicatePayload", false);
-        nodeContext.set("lastPayload", msg.payload);
+        nodeContext.set("duplicatePayload", false, node.contextName);
+        nodeContext.set("lastPayload", msg.payload, node.contextName);
       }
 
       // Set State Payload Handler
@@ -852,7 +870,7 @@ module.exports = function (RED) {
         msg.hasOwnProperty("payload") &&
         msg.payload.hasOwnProperty("state") &&
         msg.hasOwnProperty("acknowledge") &&
-        nodeContext.get("duplicatePayload") == false
+        nodeContext.get("duplicatePayload", node.contextName) == false
       ) {
         // Perform validation of device state payload, expects payload.state to contain as below
         //     "brightness": payload.state.brightness,
@@ -1116,8 +1134,8 @@ module.exports = function (RED) {
         node.warn(node.name + " state node: message missing msg.acknowledge");
       }
       // Duplicate State Update
-      else if (nodeContext.get("duplicatePayload") == true) {
-        node.log(node.name + " state node: discarded duplicate state payload");
+      else if (nodeContext.get("duplicatePayload", node.contextName) == true) {
+        // node.log(node.name + " state node: discarded duplicate state payload");
       }
     });
 
@@ -1129,7 +1147,7 @@ module.exports = function (RED) {
 
     node.on("close", function (done) {
       node.conf.deregister(node, done);
-      clearInterval(nodeContext.get("timer")); // Close Interval Timer used node context stored Id
+      clearInterval(nodeContext.get("timer", node.contextName)); // Close Interval Timer used node context stored Id
     });
   }
 
