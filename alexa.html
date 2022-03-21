@@ -10,7 +10,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<script type="text/x-red" data-template-name="alexa-smart-home-v3-conf">
+<script type="text/html" data-template-name="alexa-smart-home-v3-conf">
      <div class="form-row">
       <label for="node-config-input-username" style="width:130px"><i class="icon-tag"></i> Username</label>
       <input type="text" id="node-config-input-username">
@@ -18,24 +18,40 @@
   <div class="form-row">
      	<label for="node-config-input-password" style="width:130px"><i class="icon-tag"></i> Password</label>
       <input type="password" id="node-config-input-password">
-     </div>
-     <div class="form-row">
-         <label for="node-config-input-mqttserver" style="width:130px"><i class="icon-tag"></i> MQTT Hostname</label>
-         <input type="text" id="node-config-input-mqttserver">
-     </div>
-     <div class="form-row">
-         <label for="node-config-input-webapiurl" style="width:130px"><i class="icon-tag"></i> Web API Hostname</label>
-         <input type="text" id="node-config-input-webapiurl">
-     </div>
-     <div class="form-row" title="Select the Node-RED context store to use with this Node.">
-         <label for="node-config-input-contextName" style="width:130px"><i class="icon-tag"></i> Context Store</label>
-         <select id="node-config-input-contextName"></select>
-         <div id="contextName-hint"></div>
-         <br />
-         <div class="form-tips">
-             This node requires a Node-RED memory-based <a href='https://nodered.org/docs/user-guide/context' target="_blank">context store</a>.
-         </div>
-     </div>
+  </div>
+  <div class="form-row">
+      <label for="node-config-input-mqttserver" style="width:130px"><i class="icon-tag"></i> MQTT Hostname</label>
+      <input type="text" id="node-config-input-mqttserver">  
+  </div>
+  <div class="form-row">   
+      <label for="node-config-input-mqttport" style="width:130px"><i class="icon-tag"></i> MQTT Port</label>
+      <input type="text" id="node-config-input-mqttport" placeholder="1883">
+  </div>
+  <div class="form-row">   
+    <label for="node-config-input-mqttca" style="width:130px"><i class="icon-tag"></i> MQTT CA</label>
+    <input type="text" id="node-config-input-mqttca" placeholder="optional, only for mqtts">
+  </div>
+  <div class="form-row">   
+    <label for="node-config-input-mqttcert" style="width:130px"><i class="icon-tag"></i> MQTT Cert</label>
+    <input type="text" id="node-config-input-mqttcert" placeholder="optional, only for mqtts">
+  </div>
+  <div class="form-row">   
+    <label for="node-config-input-mqttkey" style="width:130px"><i class="icon-tag"></i> MQTT Key</label>
+    <input type="text" id="node-config-input-mqttkey" placeholder="optional, only for mqtts">
+  </div>
+  <div class="form-row">
+      <label for="node-config-input-webapiurl" style="width:130px"><i class="icon-tag"></i> Web API Hostname</label>
+      <input type="text" id="node-config-input-webapiurl">
+  </div>
+  <div class="form-row" title="Select the Node-RED context store to use with this Node.">
+      <label for="node-config-input-contextName" style="width:130px"><i class="icon-tag"></i> Context Store</label>
+      <select id="node-config-input-contextName"></select>
+      <div id="contextName-hint"></div>
+      <br />
+      <div class="form-tips">
+          This node requires a Node-RED memory-based <a href='https://nodered.org/docs/user-guide/context' target="_blank">context store</a>.
+      </div>
+  </div>
 </script>
 
 <script type="text/x-red" data-help-name="alexa-smart-home-v3-conf">
@@ -50,6 +66,10 @@
     defaults: {
       username: {},
       mqttserver: { value: "mq-red.cb-net.co.uk" },
+      mqttport: { value: "1883" },
+      mqttca: { },
+      mqttcert: { },
+      mqttkey: { },
       webapiurl: { value: "red.cb-net.co.uk" },
       contextName: { value: "default" },
     },
@@ -387,10 +407,7 @@
 
 <!-- ############################################################################################## -->
 
-<script
-  type="text/x-red"
-  data-template-name="alexa-smart-home-v3-resp"
-></script>
+<script type="text/x-red" data-template-name="alexa-smart-home-v3-resp"></script>
 
 <script type="text/x-red" data-help-name="alexa-smart-home-v3-resp">
   <p>This node sends a response to Alexa to acknowledge if the command

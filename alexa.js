@@ -17,6 +17,7 @@
 module.exports = function (RED) {
   "use strict";
   var mqtt = require("mqtt");
+  var fs = require("fs");
   var bodyParser = require("body-parser");
   var devices = {};
   const https = require("https");
@@ -43,6 +44,10 @@ module.exports = function (RED) {
     this.username = this.credentials.username || n.username; // enable transition to credential store for username
     this.password = this.credentials.password;
     this.mqttserver = n.mqttserver;
+    this.mqttport = n.mqttport;
+    this.mqttca = n.mqttca;
+    this.mqttcert = n.mqttcert;
+    this.mqttkey = n.mqttkey;
     this.webapiurl = n.webapiurl;
     this.contextName = n.contextName || "memory"; // enable transition to user-configurable context storage
     this.users = {};
@@ -55,20 +60,19 @@ module.exports = function (RED) {
       password: node.password,
       //clientId: node.username,
       clientId: node.username + "-" + clientId,
-      reconnectPeriod: 5000,
-      servers: [
-        {
-          protocol: "mqtts",
-          host: node.mqttserver,
-          port: 8883,
-        },
-        {
-          protocol: "mqtt",
-          host: node.mqttserver,
-          port: 1883,
-        },
-      ],
+      reconnectPeriod: 5000,      
+      protocol: node.mqttca !== "" ? "mqtts" : "mqtt",
+      host: node.mqttserver,
+      port: node.mqttport || (node.mqttca !== "" ? 8883 : 1883)   
     };
+
+    if (node.mqttca) {
+      options = Object.assign(options, {
+        ca: fs.readFileSync(node.mqttca),
+        key: fs.readFileSync(node.mqttkey),
+        cert: fs.readFileSync(node.mqttcert),
+      });
+    }
 
     getDevices(node.webapiurl, node.username, node.password, node.id);
 
@@ -77,9 +81,9 @@ module.exports = function (RED) {
       node.log("Node-RED contrib version: v" + packageJson.version);
       node.log(
         "Connecting to Alexa/ Google Home Skill MQTT server: " +
-          node.mqttserver +
-          ", account username: " +
-          node.username
+        node.mqttserver +
+        ", account username: " +
+        node.username
       );
       node.client = mqtt.connect(options);
       node.client.setMaxListeners(0);
@@ -87,9 +91,9 @@ module.exports = function (RED) {
       node.client.on("connect", function () {
         node.log(
           "Successfully connected to Alexa/ Google Home Skill MQTT server: " +
-            node.mqttserver +
-            ", account username: " +
-            node.username
+          node.mqttserver +
+          ", account username: " +
+          node.username
         );
         node.setStatus({ text: "connected", shape: "dot", fill: "green" });
         node.client.removeAllListeners("message");
@@ -145,9 +149,9 @@ module.exports = function (RED) {
       node.client.on("reconnect", function () {
         node.warn(
           "Re-connecting to Alexa/ Google Home Skill MQTT server: " +
-            node.mqttserver +
-            ", account username: " +
-            node.username
+          node.mqttserver +
+          ", account username: " +
+          node.username
         );
         node.setStatus({ text: "reconnecting", shape: "ring", fill: "red" });
       });
@@ -241,10 +245,10 @@ module.exports = function (RED) {
       var topic = "state/" + node.username + "/" + endpointId;
       node.log(
         deviceName +
-          " : sending state update, topic:" +
-          topic +
-          " message:" +
-          JSON.stringify(response)
+        " : sending state update, topic:" +
+        topic +
+        " message:" +
+        JSON.stringify(response)
       );
 
       if (node.client && node.client.connected) {
@@ -714,7 +718,7 @@ module.exports = function (RED) {
             ) {
               node.log(
                 "Timer throttled/ deleted state update: " +
-                  keys[nodeContext.get("tmpKey", node.contextName)]
+                keys[nodeContext.get("tmpKey", node.contextName)]
               );
               delete onGoingCommands[
                 keys[nodeContext.get("tmpKey", node.contextName)]
@@ -815,14 +819,14 @@ module.exports = function (RED) {
         if (arrayStatelessCommands.indexOf(msg.command) > -1) {
           node.log(
             node.name +
-              " state node: 'stateless' command received, dropping message (expected for specific commands)."
+            " state node: 'stateless' command received, dropping message (expected for specific commands)."
           );
           statelessCommand = true;
         } else if (msg.command) {
           node.warn(
             node.name +
-              " state node: message object includes unexpected or invalid msg.command, please remove this from payload: " +
-              msg.command
+            " state node: message object includes unexpected or invalid msg.command, please remove this from payload: " +
+            msg.command
           );
         }
       }
@@ -845,7 +849,7 @@ module.exports = function (RED) {
         // Duplicate Payload to last payload received, discard unless an adjustment payload which is likely to be duplicate
         if (
           JSON.stringify(nodeContext.get("lastPayload", node.contextName)) ==
-            JSON.stringify(msg.payload) &&
+          JSON.stringify(msg.payload) &&
           !(
             msg.payload.state.hasOwnProperty("percentageDelta") ||
             msg.payload.state.hasOwnProperty("targetSetpointDelta") ||
@@ -919,7 +923,7 @@ module.exports = function (RED) {
         ) {
           node.warn(
             node.name +
-              " state node: you cannot send combined 'colorTemperatrure' and 'color' state updates, send most recent update/ change only"
+            " state node: you cannot send combined 'colorTemperatrure' and 'color' state updates, send most recent update/ change only"
           );
           stateValid = false;
         }
@@ -1103,13 +1107,13 @@ module.exports = function (RED) {
           // Either auto-acknowledge is enabled on sender node, or validation has taken place
           node.warn(
             node.name +
-              " state node: valid state update but msg.payload.acknowledge is false/ invalid/ missing"
+            " state node: valid state update but msg.payload.acknowledge is false/ invalid/ missing"
           );
         } else {
           // State update not valid, logic above will explain why
           node.warn(
             node.name +
-              " state node: msg.payload.state not valid, check data types (numbers are not strings etc.) / format of state element"
+            " state node: msg.payload.state not valid, check data types (numbers are not strings etc.) / format of state element"
           );
         }
       }
