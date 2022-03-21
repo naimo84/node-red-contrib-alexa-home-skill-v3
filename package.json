@@ -29,6 +29,9 @@
     }
   },
   "author": "chrismbradford@gmail.com",
+  "contributors": [
+    "naimo84 <git@naimo84.dev>"
+  ],
   "license": "Apache-2.0",
   "dependencies": {
     "body-parser": "^1.19.0",
